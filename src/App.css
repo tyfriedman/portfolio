@@ -73,7 +73,7 @@ html, body {
   height: 100vh; /* Full viewport height */
   align-items: center; /* Horizontally centered */
   justify-content: flex-start; /* Move content to the top */
-  background-image: url('./assets/nd.png'); /* Replace with your image path */
+  background-image: url('./assets/Duck.png'); /* Replace with your image path */
   background-size: cover; /* Cover the entire area */
   background-position: center; /* Center the background */
   background-repeat: no-repeat; /* Prevent tiling */
