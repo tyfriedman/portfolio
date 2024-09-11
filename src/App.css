@@ -64,23 +64,30 @@ html, body {
   margin: 0 auto; /* Center the container horizontally */
   box-sizing: border-box; /* Include padding and border in the element's total width and height */
 }
-/* Modify the home page container */
+
+/* Add a background image to the home page */
 .home {
   display: flex;
   flex-direction: column;
   width: 100vw;
-  align-items: center; /* Align to the top */
-  justify-content: center; /* Keep items horizontally centered */
-  height: 100%;
+  height: 100vh; /* Full viewport height */
+  align-items: center; /* Horizontally centered */
+  justify-content: flex-start; /* Move content to the top */
+  background-image: url('https://ssl.c.photoshelter.com/img-get/I0000L97PoV99.rk/s/1200/g=G0000bY0XhluMbT0'); /* Replace with your image path */
+  background-size: cover; /* Cover the entire area */
+  background-position: center; /* Center the background */
+  background-repeat: no-repeat; /* Prevent tiling */
+  padding-top: 100px; /* Add some space from the top to avoid hiding behind the navbar */
 }
 
 /* Profile photo */
 .profile-photo {
   width: 250px;
   height: 250px;
-  border-radius: 50%;
+  border-radius: 25px;
+  margin-top: 20px;
   margin-bottom: 20px;
-  border: 3px solid #282c34; /* Same as navbar color */
+  border: 5px solid #282c34; /* Same as navbar color */
 }
 
 /* Social links */
@@ -91,10 +98,13 @@ html, body {
   border: 2px solid #282c34; /* Same as navbar color */
   border-radius: 10px; /* Rounded edges */
   padding: 5px; /* Add some space inside the border */
+  padding-left: 8px;
+  padding-right: 8px;
+  background-color: #282c34;
 }
 
 .social-links a {
-  color: #282c34; 
+  color: white; 
   text-decoration: none;
   font-size: 20px;
 }
