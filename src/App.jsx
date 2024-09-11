@@ -1,29 +1,10 @@
-
 import React from "react";
 import { BrowserRouter as Router, Route, Routes, Link } from "react-router-dom";
 import "./App.css";
+import Home from "./Home"; // Assuming Home is also in a separate file
+import Resume from "./Resume"; // Import the new Resume component
+import AboutMe from "./AboutMe"; // Import the new About Me component
 import headshot from "./assets/headshot.png"; // Replace with your actual photo
-
-// Define your pages
-function Resume() {
-  return <h2>Resume Page</h2>;
-}
-
-function AboutMe() {
-  return <h2>About Me Page</h2>;
-}
-
-function Home() {
-  return (
-    <div className="home">
-      <img src={headshot} alt="Ty Friedman" className="profile-photo" /> {/* Replace with your photo */}
-      <div className="social-links">
-        <a href="https://github.com/tyfriedman" target="_blank" rel="noopener noreferrer">GitHub</a>
-        <a href="https://linkedin.com/in/ty-friedman" target="_blank" rel="noopener noreferrer">LinkedIn</a>
-      </div>
-    </div>
-  );
-}
 
 function App() {
   return (
@@ -37,6 +18,7 @@ function App() {
           {/* Navbar on the right side */}
           <nav className="navbar">
             <ul>
+              <li><Link to="/">Home</Link></li>
               <li><Link to="/resume">Resume</Link></li>
               <li><Link to="/about-me">About Me</Link></li>
             </ul>
@@ -55,4 +37,3 @@ function App() {
 }
 
 export default App;
-
