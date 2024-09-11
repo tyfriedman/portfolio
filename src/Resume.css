@@ -1,0 +1,10 @@
+.resume-container {
+  padding: 20px;
+  background-color: #f4f4f4;
+  min-height: 100vh; /* Ensure full-page height */
+}
+
+h1 {
+  font-size: 2.5rem;
+  margin-bottom: 20px;
+}
