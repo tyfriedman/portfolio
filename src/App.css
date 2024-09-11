@@ -1,35 +1,35 @@
-#root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+/* Ensure the body and html take up the full height */
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
 }
 
+/* Make the app header fixed to the top */
 .App-header {
-  text-align: center;
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-}
-
-/* Navbar styles */
-.navbar {
-  width: 100%;
-  background-color: #282c34;
-  padding: 10px;
   position: fixed;
   top: 0;
-  left: 0;
-  z-index: 1000; /* Ensure navbar is above other elements */
+  width: 100%;
+  background-color: #282c34;
+  padding: 10px 0;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: space-between; /* Aligns content from left to right */
+}
+
+/* Style the navbar */
+.navbar {
+  display: flex;
+  justify-content: flex-end; /* Keeps the links on the right */
+  flex-grow: 1;
 }
 
 .navbar ul {
-  list-style-type: none;
+  list-style: none;
+  display: flex;
   margin: 0;
   padding: 0;
-  display: flex;
-  justify-content: center;
 }
 
 .navbar ul li {
@@ -42,10 +42,67 @@
   font-size: 18px;
 }
 
-.navbar ul li a:hover {
+/* Adjust the 'Ty Friedman' text */
+.App-header .brand {
+  font-size: 22px; /* Slightly larger than the links */
+  font-weight: bold;
+  margin-left: 20px;
+}
+
+.App-header .brand a {
+  color: white;
+  text-decoration: none;
+}
+
+/* Adjust the content to avoid hiding behind the fixed navbar */
+.App-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh; /* Take full viewport height */
+  width: 100%; /* Full width */
+  margin: 0 auto; /* Center the container horizontally */
+  box-sizing: border-box; /* Include padding and border in the element's total width and height */
+}
+/* Modify the home page container */
+.home {
+  display: flex;
+  flex-direction: column;
+  align-items: center; /* Align to the top */
+  justify-content: center; /* Keep items horizontally centered */
+  height: 100%;
+  padding-left: 20px; /* Adjust this to control horizontal centering */
+}
+
+/* Profile photo */
+.profile-photo {
+  width: 250px;
+  height: 250px;
+  border-radius: 50%;
+  margin-bottom: 20px;
+  border: 3px solid #282c34; /* Same as navbar color */
+}
+
+/* Social links */
+.social-links {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  border: 2px solid #282c34; /* Same as navbar color */
+  border-radius: 10px; /* Rounded edges */
+  padding: 5px; /* Add some space inside the border */
+}
+
+.social-links a {
+  color: #282c34; 
+  text-decoration: none;
+  font-size: 20px;
+}
+
+.social-links a:hover {
   text-decoration: underline;
 }
 
-.App-content {
-  padding-top: 60px; /* Adjust this value as needed */
+.navbar ul li a:hover {
+  text-decoration: underline;
 }
