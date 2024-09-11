@@ -60,7 +60,7 @@ html, body {
   align-items: center;
   justify-content: center;
   height: 100vh; /* Take full viewport height */
-  width: 100%; /* Full width */
+  width: 100vw; /* Full width */
   margin: 0 auto; /* Center the container horizontally */
   box-sizing: border-box; /* Include padding and border in the element's total width and height */
 }
@@ -68,10 +68,10 @@ html, body {
 .home {
   display: flex;
   flex-direction: column;
+  width: 100vw;
   align-items: center; /* Align to the top */
   justify-content: center; /* Keep items horizontally centered */
   height: 100%;
-  padding-left: 20px; /* Adjust this to control horizontal centering */
 }
 
 /* Profile photo */
