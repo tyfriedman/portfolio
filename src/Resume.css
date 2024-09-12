@@ -1,11 +1,14 @@
 .resume-container {
-  padding: 20px;
-  margin-top: 1070px;
+  padding: 120px 20px 20px 20px;
+  /* margin-top: 1070px; */
   background-color: white;
+  margin: 0 auto;
   min-height: 100vh;
+  /* display: flex; */
+  /* flex-direction: column; */
   display: flex;
-  flex-direction: column;
-  align-items: center;
+  align-items: flex-start;
+  height: 100vh;
 }
 
 .resume {
@@ -17,6 +20,9 @@
   width: 70%;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   color: #000;
+  /* added */
+  margin: 0 auto; /* Center the resume horizontally */
+  display: block;
 }
 
 h1 {
@@ -45,9 +51,5 @@ a {
 @media only screen and (max-width: 600px) {
   .resume {
     color: #000; /* Ensures black text on mobile */
-  }
-
-  .resume-container {
-      margin-top: 1820px;
   }
 }
