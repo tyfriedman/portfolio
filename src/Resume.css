@@ -46,4 +46,8 @@ a {
   .resume {
     color: #000; /* Ensures black text on mobile */
   }
+
+  .resume-container {
+      margin-top: 1320px;
+  }
 }
