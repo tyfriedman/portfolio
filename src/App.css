@@ -1,11 +1,9 @@
-/* Ensure the body and html take up the full height */
 html, body {
   margin: 0;
   padding: 0;
   height: 100%;
 }
 
-/* Make the app header fixed to the top */
 .App-header {
   position: fixed;
   top: 0;
@@ -15,13 +13,13 @@ html, body {
   color: white;
   display: flex;
   align-items: center;
-  justify-content: space-between; /* Aligns content from left to right */
+  justify-content: space-between;
 }
 
-/* Style the navbar */
+
 .navbar {
   display: flex;
-  justify-content: flex-end; /* Keeps the links on the right */
+  justify-content: flex-end;
   flex-grow: 1;
 }
 
@@ -42,9 +40,8 @@ html, body {
   font-size: 18px;
 }
 
-/* Adjust the 'Ty Friedman' text */
 .App-header .brand {
-  font-size: 22px; /* Slightly larger than the links */
+  font-size: 22px;
   font-weight: bold;
   margin-left: 20px;
 }
@@ -54,50 +51,47 @@ html, body {
   text-decoration: none;
 }
 
-/* Adjust the content to avoid hiding behind the fixed navbar */
 .App-content {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100vh; /* Take full viewport height */
-  width: 100vw; /* Full width */
-  margin: 0 auto; /* Center the container horizontally */
-  box-sizing: border-box; /* Include padding and border in the element's total width and height */
+  display: block;
+  justify-content: flex-start;
+  align-items: flex-start;
+  padding-top: 100px;
+  width: 100vw;
+  margin: 0 auto;
+  box-sizing: border-box;
+
 }
 
-/* Add a background image to the home page */
 .home {
   display: flex;
   flex-direction: column;
   width: 100vw;
-  height: 100vh; /* Full viewport height */
-  align-items: center; /* Horizontally centered */
-  justify-content: flex-start; /* Move content to the top */
+  height: 100vh; 
+  align-items: center;
+  justify-content: flex-start;
   background-image: url('./assets/ndFog.png');
-  background-size: cover; /* Cover the entire area */
-  background-position: center; /* Center the background */
-  background-repeat: no-repeat; /* Prevent tiling */
-  padding-top: 100px; /* Add some space from the top to avoid hiding behind the navbar */
+  background-size: cover;
+  background-position: center; 
+  background-repeat: no-repeat;
+  padding-top: 100px; 
 }
 
-/* Profile photo */
 .profile-photo {
   width: 450px;
   height: 450px;
   border-radius: 45px;
   margin-top: 20px;
   margin-bottom: 20px;
-  border: 8px solid #0C2340; /* Same as navbar color */
+  border: 8px solid #0C2340;
 }
 
-/* Social links */
 .social-links {
   display: flex;
   justify-content: center;
   gap: 20px;
-  border: 2px solid #0C2340; /* Same as navbar color */
-  border-radius: 10px; /* Rounded edges */
-  padding: 4px; /* Add some space inside the border */
+  border: 2px solid #0C2340;
+  border-radius: 10px;
+  padding: 4px;
   padding-left: 8px;
   padding-right: 8px;
   background-color: #0C2340;

@@ -1,10 +1,10 @@
 import React from "react";
 import { BrowserRouter as Router, Route, Routes, Link } from "react-router-dom";
 import "./App.css";
-import Home from "./Home"; // Assuming Home is also in a separate file
-import Resume from "./Resume"; // Import the new Resume component
-import AboutMe from "./AboutMe"; // Import the new About Me component
-import headshot from "./assets/headshot.png"; // Replace with your actual photo
+import Home from "./Home";
+import Resume from "./Resume";
+import AboutMe from "./AboutMe";
+import headshot from "./assets/headshot.png";
 
 function App() {
   return (
