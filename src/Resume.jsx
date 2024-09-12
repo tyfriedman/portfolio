@@ -23,8 +23,8 @@ const Resume = () => {
           <h4><a href="https://www.swedemom.com/" target="_blank" rel="noreferrer">Swedemom Center of Giving</a> | McMinnville, OR | May 2024 – August 2024</h4>
           <p>Full-Stack Software Engineering Intern</p>
           <ul>
-            <li>Developed ASP.NET Core applications by implementing features and tools with C#, JavaScript, HTML, CSS, and SQL.</li>
-            <li>Implemented internal tools by connecting to OpenAI Assistants to automate routine tasks that increased efficiency of donation intake by 200%.</li>
+            <li>Utilized ASP.NET Core, JavaScript, HTML, and CSS to develop intuitive front-end applications that streamlined business operations, that allowed less-experienced employees to perform tasks traditionally handled by more skilled staff.</li>
+            <li>Implemented internal tools with C#, SQL, and OpenAI Assistant APIs to automate routine intake tasks such as title and description generation that increased efficiency of donation intake by 200%..</li>
             <li>Designed and established quicker methods of revising posted items for increased SEO that led to an increase in July sales to holiday season levels and greatly increased site traffic.</li>
             <li>Revamped, implemented, and tested new methods of estimating optimized pricing for products to be sold on eBay to increase accuracy and quality of posted items and speed up automated revision of old item posts.</li>
           </ul>
@@ -33,7 +33,7 @@ const Resume = () => {
           <p>Engineering Computing TA</p>
           <ul>
             <li>Collaborated with a group of 23 other TAs to instruct and assist first-year engineering students in Engineering Computing and Design classes by assisting in lecture, holding office hours, and providing mentorship throughout the year.</li>
-            <li>Asisted professors and instructors by helping to create lecture materials, assisting with in-class activities and projects, and grading coursework.</li>
+            <li>Enhanced and streamlined the grading process by developing automated programs in MATLAB Grader.</li>
           </ul>
 
           <h4>Indian Canyon Golf Course | Spokane, WA | May 2023 – August 2024</h4>

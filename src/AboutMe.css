@@ -9,17 +9,64 @@
 
 }
 
-.gymnastics-photo {
-  width: 350px;
-  height: 450px;
+.photo1 {
+  width: 600px;
+  height: 750px;
   border-radius: 45px;
   margin-top: 20px;
   margin-bottom: 20px;
   border: 8px solid #0C2340;
   object-fit: cover;
 }
+.photo-gold-border {
+  width: 500px;
+  height: 600px;
+  border-radius: 45px;
+  margin-top: 20px;
+  margin-bottom: 20px;
+  border: 12px solid gold; /* Green border */
+  object-fit: cover;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.text-box-green {
+  border: 5px solid #0C2340; /* Gold border */
+  background-color: #0C2340;
+  padding: 10px;
+  margin-bottom: 25px;
+  max-width: 400px;
+  text-align: center;
+  font-size: 1rem;
+  color: white;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* For two images side by side */
+.photo-pair {
+  display: flex;
+  gap: 30px;
+}
+
+.photo-pair .photo-gold-border {
+  width: 350px; /* Adjusted width for side-by-side */
+  height: 550px; /* Adjusted height for side-by-side */
+}
+
+.text-box-green-pair {
+  border: 5px solid #0C2340;
+  background-color: #0C2340;
+  color: white;
+  padding: 10px;
+  margin-bottom: 25px;
+  max-width: 500px; /* Wider box for side-by-side images */
+  text-align: center;
+  font-size: 1rem;
+  border-radius: 10px;
+}
 
 h1 {
-  font-size: 2.5rem;
+  font-size: 2rem;
   margin-bottom: 20px;
+  
 }
