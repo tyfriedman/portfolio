@@ -1,7 +1,22 @@
 .about-me-page {
-  padding: 20px;
-  background-color: #e0e0e0;
-  min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    height: 100vh;
+    width: 100vw;
+    padding-top: 100px;
+
+}
+
+.gymnastics-photo {
+  width: 350px;
+  height: 450px;
+  border-radius: 45px;
+  margin-top: 20px;
+  margin-bottom: 20px;
+  border: 8px solid #0C2340;
+  object-fit: cover;
 }
 
 h1 {
