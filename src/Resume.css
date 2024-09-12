@@ -16,6 +16,7 @@
   border-radius: 10px;
   width: 70%;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  color: #000;
 }
 
 h1 {
@@ -41,3 +42,8 @@ a {
   text-decoration: underline;
 }
 
+@media only screen and (max-width: 600px) {
+  .resume {
+    color: #000; /* Ensures black text on mobile */
+  }
+}
