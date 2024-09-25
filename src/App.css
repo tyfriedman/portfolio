@@ -1,26 +1,28 @@
-html, body {
-  margin: 0;
-  padding: 0;
-  height: 100%;
-}
-
 .App-header {
   position: fixed;
   top: 0;
   width: 100%;
   background-color: #0C2340;
-  padding: 10px 0;
+  padding: 10px 10px;
   color: white;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  z-index: 1000;
 }
 
+.brand {
+  font-size: 22px;
+  font-weight: bold;
+}
+
+.brand a {
+  color: white;
+  text-decoration: none;
+}
 
 .navbar {
   display: flex;
-  justify-content: flex-end;
-  flex-grow: 1;
 }
 
 .navbar ul {
@@ -40,73 +42,16 @@ html, body {
   font-size: 18px;
 }
 
-.App-header .brand {
-  font-size: 22px;
-  font-weight: bold;
-  margin-left: 20px;
-}
-
-.App-header .brand a {
-  color: white;
-  text-decoration: none;
+.navbar ul li a:hover {
+  text-decoration: underline;
 }
 
 .App-content {
   display: flex;
   justify-content: center;
   align-items: flex-start;
-  padding-top: 100px;
+  padding-top: 30px;
   width: 100%;
   margin: 0 auto;
   box-sizing: border-box;
-
-}
-
-.home {
-  display: flex;
-  flex-direction: column;
-  width: 100vw;
-  height: 100vh; 
-  align-items: center;
-  justify-content: flex-start;
-  background-image: url('./assets/ndFog.png');
-  background-size: cover;
-  background-position: center; 
-  background-repeat: no-repeat;
-  padding-top: 100px; 
-}
-
-.profile-photo {
-  width: 450px;
-  height: 450px;
-  border-radius: 45px;
-  margin-top: 20px;
-  margin-bottom: 20px;
-  border: 8px solid #0C2340;
-}
-
-.social-links {
-  display: flex;
-  justify-content: center;
-  gap: 20px;
-  border: 2px solid #0C2340;
-  border-radius: 10px;
-  padding: 4px;
-  padding-left: 8px;
-  padding-right: 8px;
-  background-color: #0C2340;
-}
-
-.social-links a {
-  color: white; 
-  text-decoration: none;
-  font-size: 20px;
-}
-
-.social-links a:hover {
-  text-decoration: underline;
-}
-
-.navbar ul li a:hover {
-  text-decoration: underline;
 }
