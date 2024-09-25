@@ -128,7 +128,7 @@ const AboutMe = () => {
             { src: pizza1, alt: 'Pizza 1' },
             { src: pizza2, alt: 'Pizza 2' },
           ]}
-          caption="I'm no chef, but I love making pizza. Pro tip: pickles are actually really good on pizza (also pineapple). Now, I am the manager for Zaland, which is the pizzeria in my dorm, which sells dollar slices every night."
+          caption="I'm no chef, but I love making pizza. Pro tip: pickles are actually really good on pizza (also pineapple). Now, I am the manager for Zaland, which is the pizzeria in my dorm and sells dollar slices every night of the week."
         />
 
         {/* Golf Course Section */}
