@@ -28,7 +28,7 @@ const Projects = () => {
           <h2>CS4Good - Unity Gardens Project</h2>
           <h3>Project Lead</h3>
           <p>In partnership with Unity Gardens -- a South Bend non-profit committed to providing fresh fruits and vegetables,
-            a social community, and educational opportunities to the disadvantaged in the local community -- I am leading a team of 5
+            a social community, and educational opportunities for the disadvantaged in the local community -- I am leading a team of 5
             in developing a database for grant information and impact reports and an inventory system using their Square checkout system.
           </p>
         </div>

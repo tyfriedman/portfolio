@@ -23,7 +23,7 @@ const Resume = () => {
           <h4><a href="https://www.swedemom.com/" target="_blank" rel="noreferrer">Swedemom Center of Giving</a> | McMinnville, OR | May 2024 – August 2024</h4>
           <p>Full-Stack Software Engineering Intern</p>
           <ul>
-            <li>Utilized ASP.NET Core, JavaScript, HTML, and CSS to develop intuitive front-end applications that streamlined business operations, that allowed less-experienced employees to perform tasks traditionally handled by more skilled staff.</li>
+            <li>Utilized ASP.NET Core, JavaScript, HTML, and CSS to develop intuitive front-end applications that streamlined business operations, which allowed less-experienced employees to perform tasks traditionally handled by more skilled staff.</li>
             <li>Implemented internal tools with C#, SQL, and OpenAI Assistant APIs to automate routine intake tasks such as title and description generation that increased efficiency of donation intake by 200%..</li>
             <li>Designed and established quicker methods of revising posted items for increased SEO that led to an increase in July sales to holiday season levels and greatly increased site traffic.</li>
             <li>Revamped, implemented, and tested new methods of estimating optimized pricing for products to be sold on eBay to increase accuracy and quality of posted items and speed up automated revision of old item posts.</li>
