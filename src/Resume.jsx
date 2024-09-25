@@ -15,7 +15,7 @@ const Resume = () => {
           <p><strong>University of Notre Dame</strong> | Notre Dame, IN | May 2026</p>
           <p>Bachelor of Science | GPA: 3.9</p>
           <p>Major: Computer Science | Minor: Engineering Corporate Practice</p>
-          <p>Relevant Coursework: Data Structures, Systems Programming, Logic Design, Fundamentals of Computing, Discrete Math</p>
+          <p>Relevant Coursework: Data Structures, Systems Programming, Computer Architecture, Fundamentals of Computing, Programming Paradigms, Intro to AI</p>
         </section>
 
         <section>
