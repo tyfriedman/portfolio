@@ -136,15 +136,6 @@ const AboutMe = () => {
           images={[{ src: course, alt: 'Golf Course' }]}
           caption="I've been a greenskeeper at a local golf course over the past two summers, and nothing beats the sunrises over a beautiful course."
         />
-
-        {/* Squirrel Section */}
-        <AboutMeSection
-          images={[
-            { src: squirrel1, alt: 'Squirrel 1' },
-            { src: squirrel2, alt: 'Squirrel 2' },
-          ]}
-          caption="If you can't tell, I'm a huge fan of squirrels. That cute guy on the left is named Scrat (after the squirrel from Ice Age) and was nice enough to bite my finger in Albuquerque on a Club Gymnastics trip."
-        />
       </div>
     </div>
   );
