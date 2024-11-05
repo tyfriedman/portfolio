@@ -14,9 +14,9 @@ const Projects = () => {
         <div className="ProjectContent">
           <h2>Data Club of ND - Palantir Project</h2>
           <h3>Project Lead</h3>
-          <p>This semester, I am leading a team of 10 in a partnership with Palantir. We will be utilizing Palantir's Artificial Intelligence 
-            Platform (AIP) to analyze data from a local source and provide insights to the organization. We are excited to work with Palantir
-            and are looking forward to the results of our project. Please stay tuned for updates, as much progress is expected in the coming weeks!
+          <p>In partnership with Palantir, I am leading a ND Data Club Project with ten members that will be utilizing Palantir's Artificial Intelligence Platform (AIP). 
+            We are creating a real-time representation of energy consumption across the US, with the goal of providing a tool that can be used to identify 
+            inefficiencies in energy consumption and predict areas where energy demand will increase in the future.
           </p>
         </div>
       </section>
