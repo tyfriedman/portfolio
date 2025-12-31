@@ -58,12 +58,12 @@ export function TodoPageClient({ initialTodos }: Props) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  // Generate date range: 30 days before today + today + 60 days after (91 total days)
+  // Generate date range: 30 days before today + today + 180 days after (211 total days, ~6 months)
   // Current day will be at index 30 (on the far left of visible area)
   const visibleDates = useMemo(() => {
     const startDate = new Date(today);
     startDate.setDate(today.getDate() - 30);
-    return createDateRange(startDate, 91);
+    return createDateRange(startDate, 211);
   }, [today]);
 
   // Group todos by date

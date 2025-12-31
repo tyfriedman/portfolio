@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export default async function TodoPage() {
-  // Fetch todos for 30 days before today through 60 days after (to support scrolling)
+  // Fetch todos for 30 days before today through 180 days after (6 months, to support scrolling)
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   
@@ -13,7 +13,7 @@ export default async function TodoPage() {
   startDate.setDate(today.getDate() - 30);
   
   const endDate = new Date(today);
-  endDate.setDate(today.getDate() + 60);
+  endDate.setDate(today.getDate() + 180);
 
   const dateRange = {
     start: startDate.toISOString().split("T")[0],
