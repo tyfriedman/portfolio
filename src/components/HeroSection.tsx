@@ -4,14 +4,10 @@ import Image from 'next/image';
 const HeroSection = () => {
   const typewriterWords = [
     'computer scientist',
-    'aspiring runner', 
+    'amateur runner', 
     'data fanatic',
     'travel enthusiast',
-    'curious student',
-    'pizza connoisseur',
-    'tech junkie',
-    'washed-up gymnast',
-    'nature lover'
+    'pizza connoisseur'
   ];
 
   return (
