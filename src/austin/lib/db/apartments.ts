@@ -167,5 +167,49 @@ export async function createApartmentWithPhotos(input: CreateApartmentInput) {
   return apartmentId;
 }
 
+export interface UpdateApartmentInput {
+  monthly_rent?: number | null;
+  notes?: string | null;
+  status?: ApartmentStatus;
+  drive_miles_to_office?: number | null;
+  drive_minutes_to_office?: number | null;
+}
+
+export async function updateApartment(
+  id: string,
+  input: UpdateApartmentInput
+): Promise<void> {
+  const { error } = await supabase
+    .from("apartments")
+    .update(input)
+    .eq("id", id);
+
+  if (error) {
+    throw error;
+  }
+}
+
+export async function deleteApartment(id: string): Promise<void> {
+  // Delete photos first (due to foreign key constraint)
+  const { error: photosError } = await supabase
+    .from("apartment_photos")
+    .delete()
+    .eq("apartment_id", id);
+
+  if (photosError) {
+    console.error("Error deleting apartment photos", photosError);
+  }
+
+  // Delete the apartment
+  const { error } = await supabase
+    .from("apartments")
+    .delete()
+    .eq("id", id);
+
+  if (error) {
+    throw error;
+  }
+}
+
 
 

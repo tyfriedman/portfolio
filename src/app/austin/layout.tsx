@@ -1,16 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
 
 export const metadata: Metadata = {
   title: "Austin Apartments",
@@ -27,9 +16,6 @@ export default function RootLayout({
 }>) {
   // #region agent log
   const isServer = typeof window === 'undefined';
-  const geistSansVar = geistSans.variable;
-  const geistMonoVar = geistMono.variable;
-  const wrapperClassName = `${geistSansVar} ${geistMonoVar}`;
   fetch('http://127.0.0.1:7245/ingest/18a31cd8-5366-4906-b5f7-0f4b58a08ff9', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -41,9 +27,6 @@ export default function RootLayout({
       message: 'Austin layout rendering (fixed)',
       data: {
         isServer,
-        geistSansVar,
-        geistMonoVar,
-        wrapperClassName,
         hasHtmlTag: false,
         hasBodyTag: false,
         hasWrapperDiv: true,
@@ -54,7 +37,7 @@ export default function RootLayout({
   // #endregion
 
   return (
-    <div className={wrapperClassName}>
+    <div>
       {children}
     </div>
   );

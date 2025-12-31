@@ -11,15 +11,33 @@ interface Props {
   apartments: ApartmentWithPhotos[];
 }
 
-export function ApartmentsPageClient({ apartments }: Props) {
+export function ApartmentsPageClient({ apartments: initialApartments }: Props) {
+  const [apartments, setApartments] = useState<ApartmentWithPhotos[]>(initialApartments);
   const [selectedId, setSelectedId] = useState<string | null>(
-    apartments[0]?.id ?? null
+    initialApartments[0]?.id ?? null
   );
 
   const selectedApartment = useMemo(
     () => apartments.find((apt) => apt.id === selectedId) ?? null,
     [apartments, selectedId]
   );
+
+  const handleApartmentUpdate = (updatedApartment: ApartmentWithPhotos) => {
+    setApartments((prev) =>
+      prev.map((apt) => (apt.id === updatedApartment.id ? updatedApartment : apt))
+    );
+  };
+
+  const handleApartmentDelete = (apartmentId: string) => {
+    setApartments((prev) => {
+      const remaining = prev.filter((apt) => apt.id !== apartmentId);
+      // Clear selection if the deleted apartment was selected
+      if (selectedId === apartmentId) {
+        setSelectedId(remaining[0]?.id ?? null);
+      }
+      return remaining;
+    });
+  };
 
   const markers = useMemo(
     () =>
@@ -71,7 +89,11 @@ export function ApartmentsPageClient({ apartments }: Props) {
         </section>
 
         <section className="flex w-full flex-col gap-3 md:h-[calc(100vh-6rem)] md:w-[380px]">
-          <ApartmentDetailsPanel apartment={selectedApartment} />
+          <ApartmentDetailsPanel 
+            apartment={selectedApartment} 
+            onUpdate={handleApartmentUpdate}
+            onDelete={handleApartmentDelete}
+          />
           <ApartmentList
             apartments={apartments}
             selectedApartmentId={selectedId}
