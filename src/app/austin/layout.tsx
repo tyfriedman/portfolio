@@ -25,13 +25,37 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // #region agent log
+  const isServer = typeof window === 'undefined';
+  const geistSansVar = geistSans.variable;
+  const geistMonoVar = geistMono.variable;
+  const wrapperClassName = `${geistSansVar} ${geistMonoVar}`;
+  fetch('http://127.0.0.1:7245/ingest/18a31cd8-5366-4906-b5f7-0f4b58a08ff9', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      sessionId: 'debug-session',
+      runId: 'post-fix',
+      hypothesisId: 'H1',
+      location: 'app/austin/layout.tsx:RootLayout',
+      message: 'Austin layout rendering (fixed)',
+      data: {
+        isServer,
+        geistSansVar,
+        geistMonoVar,
+        wrapperClassName,
+        hasHtmlTag: false,
+        hasBodyTag: false,
+        hasWrapperDiv: true,
+      },
+      timestamp: Date.now(),
+    }),
+  }).catch(() => {});
+  // #endregion
+
   return (
-    <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        {children}
-      </body>
-    </html>
+    <div className={wrapperClassName}>
+      {children}
+    </div>
   );
 }

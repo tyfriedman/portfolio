@@ -213,46 +213,46 @@ export default function NewApartmentPage() {
     <div className="flex min-h-screen flex-col bg-zinc-50">
       <header className="border-b border-zinc-200 bg-white">
         <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-3">
-          <h1 className="text-lg font-semibold text-zinc-900">
+          <h1 className="text-base sm:text-lg font-semibold text-zinc-900">
             Add apartment
           </h1>
           <button
             type="button"
-            onClick={() => router.push("/")}
-            className="text-sm text-zinc-600 hover:text-zinc-900"
+            onClick={() => router.push("/austin")}
+            className="text-xs sm:text-sm text-zinc-600 hover:text-zinc-900 min-h-[44px] px-2 sm:px-0"
           >
             Back to map
           </button>
         </div>
       </header>
 
-      <main className="mx-auto flex w-full max-w-3xl flex-1 px-4 py-4">
+      <main className="mx-auto flex w-full max-w-3xl flex-1 px-3 sm:px-4 py-3 sm:py-4">
         <form
           onSubmit={handleSubmit}
-          className="flex w-full flex-col gap-4 rounded-xl border border-zinc-200 bg-white p-4 shadow-sm"
+          className="flex w-full flex-col gap-3 sm:gap-4 rounded-xl border border-zinc-200 bg-white p-3 sm:p-4 shadow-sm"
         >
           {error && (
-            <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+            <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs sm:text-sm text-red-700">
               {error}
             </div>
           )}
 
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-3 sm:gap-4 grid-cols-1 md:grid-cols-2">
             <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium text-zinc-800">
+              <label className="text-xs sm:text-sm font-medium text-zinc-800">
                 Title
               </label>
               <input
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                className="rounded-md border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                className="rounded-md border border-zinc-300 px-3 py-2.5 sm:py-2 text-sm shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 min-h-[44px]"
                 placeholder="e.g. Domain apartments – 2BR"
                 required
               />
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium text-zinc-800">
+              <label className="text-xs sm:text-sm font-medium text-zinc-800">
                 Monthly rent (USD)
               </label>
               <input
@@ -260,32 +260,32 @@ export default function NewApartmentPage() {
                 min={0}
                 value={monthlyRent}
                 onChange={(e) => setMonthlyRent(e.target.value)}
-                className="rounded-md border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                className="rounded-md border border-zinc-300 px-3 py-2.5 sm:py-2 text-sm shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 min-h-[44px]"
                 placeholder="e.g. 2300"
               />
             </div>
           </div>
 
           <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium text-zinc-800">
+            <label className="text-xs sm:text-sm font-medium text-zinc-800">
               Address
             </label>
             <input
               type="text"
               value={address}
               onChange={(e) => setAddress(e.target.value)}
-              className="rounded-md border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+              className="rounded-md border border-zinc-300 px-3 py-2.5 sm:py-2 text-sm shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 min-h-[44px]"
               placeholder="Street, city, state"
               required
             />
-            <p className="text-xs text-zinc-500">
+            <p className="text-xs text-zinc-500 mt-1">
               Used to place the pin on the map and compute distance to Visa HQ.
             </p>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-3 sm:gap-4 grid-cols-1 md:grid-cols-2">
             <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium text-zinc-800">
+              <label className="text-xs sm:text-sm font-medium text-zinc-800">
                 Status
               </label>
               <select
@@ -293,7 +293,7 @@ export default function NewApartmentPage() {
                 onChange={(e) =>
                   setStatus(e.target.value as typeof status)
                 }
-                className="rounded-md border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                className="rounded-md border border-zinc-300 px-3 py-2.5 sm:py-2 text-sm shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 min-h-[44px]"
               >
                 <option value="prospect">Prospect</option>
                 <option value="toured">Toured</option>
@@ -305,27 +305,27 @@ export default function NewApartmentPage() {
           </div>
 
           <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium text-zinc-800">
+            <label className="text-xs sm:text-sm font-medium text-zinc-800">
               Notes
             </label>
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={4}
-              className="rounded-md border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+              className="rounded-md border border-zinc-300 px-3 py-2.5 sm:py-2 text-sm shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 resize-y"
               placeholder="Tour impressions, pros/cons, parking, noise, etc."
             />
           </div>
 
           <div className="flex flex-col gap-2">
             <div className="flex items-center justify-between">
-              <label className="text-sm font-medium text-zinc-800">
+              <label className="text-xs sm:text-sm font-medium text-zinc-800">
                 Photos (image URLs)
               </label>
               <button
                 type="button"
                 onClick={handleAddPhotoField}
-                className="text-xs font-medium text-emerald-700 hover:text-emerald-800"
+                className="text-xs font-medium text-emerald-700 hover:text-emerald-800 min-h-[44px] px-2 sm:px-0"
               >
                 + Add photo
               </button>
@@ -338,7 +338,7 @@ export default function NewApartmentPage() {
               {photos.map((photo) => (
                 <div
                   key={photo.id}
-                  className="grid gap-2 rounded-md border border-zinc-200 bg-zinc-50 p-2 md:grid-cols-5"
+                  className="grid gap-2 rounded-md border border-zinc-200 bg-zinc-50 p-2 grid-cols-1 md:grid-cols-5"
                 >
                   <div className="md:col-span-3">
                     <input
@@ -347,7 +347,7 @@ export default function NewApartmentPage() {
                       onChange={(e) =>
                         handlePhotoChange(photo.id, "url", e.target.value)
                       }
-                      className="w-full rounded-md border border-zinc-300 px-3 py-1.5 text-xs shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                      className="w-full rounded-md border border-zinc-300 px-3 py-2.5 sm:py-1.5 text-xs shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 min-h-[44px] sm:min-h-0"
                       placeholder="https://..."
                     />
                   </div>
@@ -358,7 +358,7 @@ export default function NewApartmentPage() {
                       onChange={(e) =>
                         handlePhotoChange(photo.id, "caption", e.target.value)
                       }
-                      className="w-full rounded-md border border-zinc-300 px-3 py-1.5 text-xs shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                      className="w-full rounded-md border border-zinc-300 px-3 py-2.5 sm:py-1.5 text-xs shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 min-h-[44px] sm:min-h-0"
                       placeholder="Caption (optional)"
                     />
                   </div>
@@ -367,18 +367,18 @@ export default function NewApartmentPage() {
             </div>
           </div>
 
-          <div className="mt-2 flex items-center justify-end gap-3">
+          <div className="mt-2 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 sm:gap-3">
             <button
               type="button"
               onClick={() => router.push("/austin")}
-              className="rounded-full border border-zinc-300 px-4 py-2 text-xs font-medium text-zinc-700 hover:bg-zinc-100"
+              className="rounded-full border border-zinc-300 px-4 py-2.5 sm:py-2 text-xs sm:text-xs font-medium text-zinc-700 hover:bg-zinc-100 min-h-[44px] sm:min-h-0"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="rounded-full bg-emerald-600 px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+              className="rounded-full bg-emerald-600 px-4 py-2.5 sm:py-2 text-xs sm:text-xs font-semibold text-white shadow-sm hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60 min-h-[44px] sm:min-h-0"
             >
               {isSubmitting ? "Saving…" : "Save apartment"}
             </button>

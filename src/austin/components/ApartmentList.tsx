@@ -20,7 +20,7 @@ export function ApartmentList({
   }
 
   return (
-    <div className="flex max-h-64 flex-col gap-2 overflow-y-auto rounded-xl border border-zinc-200 bg-white p-2 text-sm shadow-sm">
+    <div className="flex max-h-48 sm:max-h-64 flex-col gap-2 overflow-y-auto rounded-xl border border-zinc-200 bg-white p-2 sm:p-2 text-xs sm:text-sm shadow-sm">
       {apartments.map((apt) => {
         const isSelected = apt.id === selectedApartmentId;
         return (
@@ -28,19 +28,19 @@ export function ApartmentList({
             key={apt.id}
             type="button"
             onClick={() => onSelectApartment?.(apt.id)}
-            className={`flex w-full items-start justify-between rounded-lg px-3 py-2 text-left transition ${
+            className={`flex w-full items-start justify-between rounded-lg px-3 py-3 sm:py-2 text-left transition min-h-[44px] ${
               isSelected
                 ? "bg-emerald-50 ring-1 ring-emerald-400"
-                : "hover:bg-zinc-50"
+                : "hover:bg-zinc-50 active:bg-zinc-100"
             }`}
           >
-            <div>
-              <div className="text-sm font-medium text-zinc-900">
+            <div className="flex-1 min-w-0 pr-2">
+              <div className="text-xs sm:text-sm font-medium text-zinc-900 truncate">
                 {apt.title}
               </div>
-              <div className="text-xs text-zinc-600">{apt.address}</div>
+              <div className="text-xs text-zinc-600 truncate">{apt.address}</div>
             </div>
-            <div className="flex flex-col items-end gap-1 text-xs text-zinc-700">
+            <div className="flex flex-col items-end gap-1 text-xs text-zinc-700 flex-shrink-0">
               {apt.monthly_rent != null && (
                 <span>${apt.monthly_rent.toLocaleString()}</span>
               )}

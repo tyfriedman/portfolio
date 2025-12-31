@@ -35,25 +35,25 @@ export function ApartmentsPageClient({ apartments }: Props) {
   return (
     <div className="flex min-h-screen flex-col bg-zinc-50">
       <header className="border-b border-zinc-200 bg-white">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
+        <div className="mx-auto flex max-w-6xl flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0 px-4 py-3">
           <div className="flex items-baseline gap-2">
-            <h1 className="text-lg font-semibold text-zinc-900">
+            <h1 className="text-base sm:text-lg font-semibold text-zinc-900">
               Austin Housing Map
             </h1>
-            <span className="text-xs text-zinc-500">
+            <span className="text-xs text-zinc-500 hidden sm:inline">
               Track apartments vs Visa HQ
             </span>
           </div>
-          <nav className="flex items-center gap-3 text-sm">
+          <nav className="flex items-center gap-2 sm:gap-3">
             <Link
               href="/austin"
-              className="rounded-full bg-zinc-900 px-4 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-zinc-800"
+              className="rounded-full bg-zinc-900 px-4 py-2.5 sm:py-1.5 text-xs sm:text-xs font-medium text-white shadow-sm hover:bg-zinc-800 min-h-[44px] sm:min-h-0 flex items-center justify-center"
             >
               Map
             </Link>
             <Link
               href="/austin/apartments/new"
-              className="rounded-full border border-emerald-500 bg-emerald-50 px-4 py-1.5 text-xs font-medium text-emerald-700 hover:bg-emerald-100"
+              className="rounded-full border border-emerald-500 bg-emerald-50 px-4 py-2.5 sm:py-1.5 text-xs sm:text-xs font-medium text-emerald-700 hover:bg-emerald-100 min-h-[44px] sm:min-h-0 flex items-center justify-center"
             >
               Add apartment
             </Link>
@@ -61,8 +61,8 @@ export function ApartmentsPageClient({ apartments }: Props) {
         </div>
       </header>
 
-      <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-4 px-4 py-4 md:flex-row">
-        <section className="h-80 w-full md:h-[calc(100vh-6rem)] md:flex-1">
+      <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-3 sm:gap-4 px-3 sm:px-4 py-3 sm:py-4 md:flex-row">
+        <section className="h-64 sm:h-80 w-full md:h-[calc(100vh-6rem)] md:flex-1">
           <MapView
             apartments={markers}
             selectedApartmentId={selectedId}

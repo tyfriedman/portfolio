@@ -15,13 +15,13 @@ export function ApartmentDetailsPanel({ apartment }: Props) {
   }
 
   return (
-    <div className="flex h-full flex-col gap-4 rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
+    <div className="flex h-full flex-col gap-3 sm:gap-4 rounded-xl border border-zinc-200 bg-white p-3 sm:p-4 shadow-sm overflow-y-auto">
       <div>
-        <h2 className="text-lg font-semibold text-zinc-900">{apartment.title}</h2>
-        <p className="text-sm text-zinc-600">{apartment.address}</p>
+        <h2 className="text-base sm:text-lg font-semibold text-zinc-900 break-words">{apartment.title}</h2>
+        <p className="text-xs sm:text-sm text-zinc-600 break-words">{apartment.address}</p>
       </div>
 
-      <div className="flex flex-wrap gap-4 text-sm text-zinc-700">
+      <div className="flex flex-wrap gap-3 sm:gap-4 text-xs sm:text-sm text-zinc-700">
         {apartment.monthly_rent != null && (
           <div>
             <div className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
@@ -62,7 +62,7 @@ export function ApartmentDetailsPanel({ apartment }: Props) {
           <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-zinc-500">
             Notes
           </div>
-          <p className="whitespace-pre-line text-sm text-zinc-700">
+          <p className="whitespace-pre-line text-xs sm:text-sm text-zinc-700 break-words">
             {apartment.notes}
           </p>
         </div>
@@ -73,9 +73,9 @@ export function ApartmentDetailsPanel({ apartment }: Props) {
           <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">
             Photos
           </div>
-          <div className="flex gap-2 overflow-x-auto pb-1">
+          <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 snap-x snap-mandatory">
             {apartment.photos.map((photo) => (
-              <div key={photo.id} className="relative h-32 w-44 flex-shrink-0 overflow-hidden rounded-md border border-zinc-200 bg-zinc-100">
+              <div key={photo.id} className="relative h-24 w-32 sm:h-32 sm:w-44 flex-shrink-0 overflow-hidden rounded-md border border-zinc-200 bg-zinc-100 snap-start">
                 <Image
                   src={photo.public_url}
                   alt={photo.caption || apartment.title}
