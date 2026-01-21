@@ -8,10 +8,14 @@ interface Props {
 }
 
 const STATUS_COLORS: Record<TodoStatus, string> = {
-  done: "bg-green-400",
-  started: "bg-yellow-400",
-  not_started: "bg-red-400",
+  done: "#33a853",
+  started: "#fabd05",
+  not_started: "#ea4336",
 };
+
+function getStatusBackgroundColor(status: TodoStatus): React.CSSProperties {
+  return { backgroundColor: STATUS_COLORS[status] };
+}
 
 const STATUS_LABELS: Record<TodoStatus, string> = {
   done: "Done",
@@ -187,7 +191,13 @@ export function TodoPageClient({ initialTodos }: Props) {
   };
 
   const handleStatusChange = async (todo: Todo) => {
+    const originalStatus = todo.status;
     const newStatus = getNextStatus(todo.status);
+
+    // Optimistic update: immediately update the UI
+    setTodos((prev) =>
+      prev.map((t) => (t.id === todo.id ? { ...t, status: newStatus } : t))
+    );
 
     try {
       const response = await fetch("/api/todos", {
@@ -203,11 +213,13 @@ export function TodoPageClient({ initialTodos }: Props) {
         throw new Error("Failed to update todo");
       }
 
-      setTodos((prev) =>
-        prev.map((t) => (t.id === todo.id ? { ...t, status: newStatus } : t))
-      );
+      // State is already updated optimistically, no need to update again
     } catch (error) {
       console.error("Error updating todo:", error);
+      // Revert to original status on error
+      setTodos((prev) =>
+        prev.map((t) => (t.id === todo.id ? { ...t, status: originalStatus } : t))
+      );
       alert("Failed to update todo");
     }
   };
@@ -247,7 +259,8 @@ export function TodoPageClient({ initialTodos }: Props) {
                   className="flex items-center gap-2 text-sm text-zinc-700"
                 >
                   <div
-                    className={`w-4 h-4 rounded ${STATUS_COLORS[status]}`}
+                    className="w-4 h-4 rounded"
+                    style={getStatusBackgroundColor(status)}
                   />
                   <span>{STATUS_LABELS[status]}</span>
                 </div>
@@ -286,7 +299,8 @@ export function TodoPageClient({ initialTodos }: Props) {
                         {dayTodos.map((todo) => (
                           <div
                             key={todo.id}
-                            className={`p-1.5 rounded cursor-pointer hover:opacity-80 transition-opacity ${STATUS_COLORS[todo.status]}`}
+                            className="p-1.5 rounded cursor-pointer hover:opacity-80 transition-opacity"
+                            style={getStatusBackgroundColor(todo.status)}
                             onClick={() => handleStatusChange(todo)}
                             title="Click to change status"
                           >
