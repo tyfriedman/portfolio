@@ -1,11 +1,17 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Canvas } from '@/erd/components/Canvas';
+import dynamic from 'next/dynamic';
 import { Toolbar } from '@/erd/components/Toolbar';
 import { Sidebar } from '@/erd/components/Sidebar';
 import { useDiagram } from '@/erd/hooks/useDiagram';
 import { Diagram } from '@/erd/types/diagram';
+
+// Dynamically import Canvas component with SSR disabled since it uses konva (browser-only)
+const Canvas = dynamic(() => import('@/erd/components/CanvasWrapper'), {
+  ssr: false,
+  loading: () => <div className="flex items-center justify-center h-full">Loading canvas...</div>
+});
 
 export default function ErdPage() {
   const [canvasSize, setCanvasSize] = useState({ width: 1200, height: 800 });
