@@ -8,18 +8,10 @@ const nextConfig: NextConfig = {
   devIndicators: {
     position: 'bottom-right',
   },
-  // Use webpack for React resolution with react-konva
-  // This ensures React is resolved as a singleton to avoid version conflicts
+  // Use webpack for konva compatibility
   webpack: (config, { isServer }) => {
-    if (!isServer) {
-      config.resolve.alias = {
-        ...config.resolve.alias,
-        react: require.resolve('react'),
-        'react-dom': require.resolve('react-dom'),
-      };
-    }
-    
     // Ignore canvas module (Node.js only, not needed for browser)
+    // This prevents konva from trying to import the canvas package during build
     config.resolve.fallback = {
       ...config.resolve.fallback,
       canvas: false,
