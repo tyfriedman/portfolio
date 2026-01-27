@@ -5,7 +5,7 @@ import { Stage, Layer, Text } from 'react-konva';
 import { Entity } from './Entity';
 import { Attribute } from './Attribute';
 import { Relationship } from './Relationship';
-import { ConnectionLine, getAttributeConnectionPoints, getRelationshipConnectionPoints } from './ConnectionLine';
+import { ConnectionLine, getAttributeConnectionPoints, getRelationshipConnectionPoints, getSelfReferencingConnectionPoints } from './ConnectionLine';
 import { useEffect, useRef } from 'react';
 import { Diagram } from '../types/diagram';
 
@@ -155,48 +155,112 @@ export const Canvas = ({
         })}
 
         {diagram.relationships.map((relationship) => {
+          // Track which entities we've processed to handle self-references
+          const processedEntities = new Set<string>();
+          
           return relationship.connectedEntities.map((entityId, index) => {
             const entity = diagram.entities.find((e) => e.id === entityId);
             if (!entity) return null;
             
-            // Get connection points (closest diamond corner to closest entity point)
-            const { diamondCorner, entityPoint } = getRelationshipConnectionPoints(
-              relationship,
-              entity
-            );
+            // Check if this is a self-referencing relationship (entity appears twice)
+            const count = relationship.connectedEntities.filter(id => id === entityId).length;
+            const isSelfReference = count === 2;
             
-            // Get cardinality for this connection
-            const cardinality = relationship.cardinalities?.[entityId] || '1';
+            // For self-references, only process on the first occurrence
+            if (isSelfReference && processedEntities.has(entityId)) {
+              return null;
+            }
             
-            // Calculate label position (slightly offset from entity connection point)
-            const dx = entityPoint.x - diamondCorner.x;
-            const dy = entityPoint.y - diamondCorner.y;
-            const distance = Math.sqrt(dx * dx + dy * dy);
-            const offset = 15; // pixels from connection point
-            const labelX = entityPoint.x - (dx / distance) * offset;
-            const labelY = entityPoint.y - (dy / distance) * offset;
-            
-            return (
-              <React.Fragment key={`rel-line-${relationship.id}-${entityId}-${index}`}>
-                <ConnectionLine
-                  from={entityPoint}
-                  to={diamondCorner}
-                />
-                <Text
-                  x={labelX}
-                  y={labelY}
-                  text={cardinality}
-                  fontSize={16}
-                  fontFamily="Arial"
-                  fill="#1e293b"
-                  align="center"
-                  verticalAlign="middle"
-                  offsetX={8}
-                  offsetY={8}
-                  listening={false}
-                />
-              </React.Fragment>
-            );
+            if (isSelfReference) {
+              processedEntities.add(entityId);
+              
+              // Get self-referencing connection points (two adjacent corners)
+              const connectionPoints = getSelfReferencingConnectionPoints(relationship, entity);
+              
+              return (
+                <React.Fragment key={`rel-self-${relationship.id}-${entityId}`}>
+                  {connectionPoints.map(({ diamondCorner, entityPoint }, connectionIndex) => {
+                    // Get cardinality for this connection (use _self_0 and _self_1 keys)
+                    const cardinalityKey = `${entityId}_self_${connectionIndex}`;
+                    const cardinality = relationship.cardinalities?.[cardinalityKey] || 
+                                      relationship.cardinalities?.[entityId] || 
+                                      '1';
+                    
+                    // Calculate label position (slightly offset from entity connection point)
+                    const dx = entityPoint.x - diamondCorner.x;
+                    const dy = entityPoint.y - diamondCorner.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    const offset = 15; // pixels from connection point
+                    const labelX = entityPoint.x - (dx / distance) * offset;
+                    const labelY = entityPoint.y - (dy / distance) * offset;
+                    
+                    return (
+                      <React.Fragment key={`rel-self-line-${relationship.id}-${entityId}-${connectionIndex}`}>
+                        <ConnectionLine
+                          from={entityPoint}
+                          to={diamondCorner}
+                        />
+                        <Text
+                          x={labelX}
+                          y={labelY}
+                          text={cardinality}
+                          fontSize={16}
+                          fontFamily="Arial"
+                          fill="#1e293b"
+                          align="center"
+                          verticalAlign="middle"
+                          offsetX={8}
+                          offsetY={8}
+                          listening={false}
+                        />
+                      </React.Fragment>
+                    );
+                  })}
+                </React.Fragment>
+              );
+            } else {
+              // Regular relationship connection
+              processedEntities.add(entityId);
+              
+              // Get connection points (closest diamond corner to closest entity point)
+              const { diamondCorner, entityPoint } = getRelationshipConnectionPoints(
+                relationship,
+                entity
+              );
+              
+              // Get cardinality for this connection
+              const cardinality = relationship.cardinalities?.[entityId] || '1';
+              
+              // Calculate label position (slightly offset from entity connection point)
+              const dx = entityPoint.x - diamondCorner.x;
+              const dy = entityPoint.y - diamondCorner.y;
+              const distance = Math.sqrt(dx * dx + dy * dy);
+              const offset = 15; // pixels from connection point
+              const labelX = entityPoint.x - (dx / distance) * offset;
+              const labelY = entityPoint.y - (dy / distance) * offset;
+              
+              return (
+                <React.Fragment key={`rel-line-${relationship.id}-${entityId}-${index}`}>
+                  <ConnectionLine
+                    from={entityPoint}
+                    to={diamondCorner}
+                  />
+                  <Text
+                    x={labelX}
+                    y={labelY}
+                    text={cardinality}
+                    fontSize={16}
+                    fontFamily="Arial"
+                    fill="#1e293b"
+                    align="center"
+                    verticalAlign="middle"
+                    offsetX={8}
+                    offsetY={8}
+                    listening={false}
+                  />
+                </React.Fragment>
+              );
+            }
           });
         })}
 

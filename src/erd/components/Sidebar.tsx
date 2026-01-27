@@ -12,7 +12,7 @@ interface SidebarProps {
     relationships: Relationship[];
   };
   onUpdate: (updates: any) => void;
-  onUpdateCardinality?: (entityId: string, cardinality: '1' | '*' | '0..1' | '1..*') => void;
+  onUpdateCardinality?: (entityId: string, cardinality: '1' | '*' | '0..1' | '1..*', connectionIndex?: number) => void;
   onClose: () => void;
 }
 
@@ -113,33 +113,108 @@ export const Sidebar = ({
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Cardinality
             </label>
-            {relationship.connectedEntities.map((entityId) => {
-              const entity = diagram.entities.find((e) => e.id === entityId);
-              if (!entity) return null;
+            {(() => {
+              // Track processed entities to handle self-references
+              const processedEntities = new Set<string>();
+              const result: JSX.Element[] = [];
               
-              const currentCardinality = relationship.cardinalities?.[entityId] || '1';
+              relationship.connectedEntities.forEach((entityId, index) => {
+                const entity = diagram.entities.find((e) => e.id === entityId);
+                if (!entity) return;
+                
+                // Check if this is a self-referencing relationship
+                const count = relationship.connectedEntities.filter(id => id === entityId).length;
+                const isSelfReference = count === 2;
+                
+                // Skip if we've already processed this entity
+                if (processedEntities.has(entityId)) return;
+                processedEntities.add(entityId);
+                
+                if (isSelfReference) {
+                  // Self-referencing relationship: show two cardinality controls
+                  result.push(
+                    <div key={entityId} className="mb-3">
+                      <div className="text-xs text-gray-600 mb-1">{entity.label} (Self-Reference)</div>
+                      {/* First connection */}
+                      <div className="mb-2">
+                        <div className="text-xs text-gray-500 mb-1">Connection 1</div>
+                        <div className="flex gap-2">
+                          {(['1', '*', '0..1', '1..*'] as const).map((card) => {
+                            const cardinalityKey = `${entityId}_self_0`;
+                            const currentCardinality = relationship.cardinalities?.[cardinalityKey] || 
+                                                      relationship.cardinalities?.[entityId] || 
+                                                      '1';
+                            return (
+                              <button
+                                key={card}
+                                onClick={() => onUpdateCardinality(entityId, card, 0)}
+                                className={`px-3 py-1 text-sm rounded border ${
+                                  currentCardinality === card
+                                    ? 'bg-blue-500 text-white border-blue-500'
+                                    : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                                }`}
+                              >
+                                {card}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                      {/* Second connection */}
+                      <div>
+                        <div className="text-xs text-gray-500 mb-1">Connection 2</div>
+                        <div className="flex gap-2">
+                          {(['1', '*', '0..1', '1..*'] as const).map((card) => {
+                            const cardinalityKey = `${entityId}_self_1`;
+                            const currentCardinality = relationship.cardinalities?.[cardinalityKey] || 
+                                                      relationship.cardinalities?.[entityId] || 
+                                                      '1';
+                            return (
+                              <button
+                                key={card}
+                                onClick={() => onUpdateCardinality(entityId, card, 1)}
+                                className={`px-3 py-1 text-sm rounded border ${
+                                  currentCardinality === card
+                                    ? 'bg-blue-500 text-white border-blue-500'
+                                    : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                                }`}
+                              >
+                                {card}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                } else {
+                  // Regular relationship: show one cardinality control
+                  const currentCardinality = relationship.cardinalities?.[entityId] || '1';
+                  result.push(
+                    <div key={entityId} className="mb-3">
+                      <div className="text-xs text-gray-600 mb-1">{entity.label}</div>
+                      <div className="flex gap-2">
+                        {(['1', '*', '0..1', '1..*'] as const).map((card) => (
+                          <button
+                            key={card}
+                            onClick={() => onUpdateCardinality(entityId, card)}
+                            className={`px-3 py-1 text-sm rounded border ${
+                              currentCardinality === card
+                                ? 'bg-blue-500 text-white border-blue-500'
+                                : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                            }`}
+                          >
+                            {card}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                }
+              });
               
-              return (
-                <div key={entityId} className="mb-3">
-                  <div className="text-xs text-gray-600 mb-1">{entity.label}</div>
-                  <div className="flex gap-2">
-                    {(['1', '*', '0..1', '1..*'] as const).map((card) => (
-                      <button
-                        key={card}
-                        onClick={() => onUpdateCardinality(entityId, card)}
-                        className={`px-3 py-1 text-sm rounded border ${
-                          currentCardinality === card
-                            ? 'bg-blue-500 text-white border-blue-500'
-                            : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
-                        }`}
-                      >
-                        {card}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
+              return result;
+            })()}
           </div>
         )}
       </div>

@@ -105,9 +105,9 @@ export default function ErdPage() {
     }
   };
 
-  const handleUpdateCardinality = (entityId: string, cardinality: '1' | '*' | '0..1' | '1..*') => {
+  const handleUpdateCardinality = (entityId: string, cardinality: '1' | '*' | '0..1' | '1..*', connectionIndex?: number) => {
     if (selectedId && selectedType === 'relationship') {
-      updateRelationshipCardinality(selectedId, entityId, cardinality);
+      updateRelationshipCardinality(selectedId, entityId, cardinality, connectionIndex);
     }
   };
 

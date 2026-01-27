@@ -1,0 +1,184 @@
+# ER Diagram Creator - Application Context
+
+## Overview
+This is a web-based Entity-Relationship (ER) diagram creator built with React and TypeScript. Users can create, edit, and save ER diagrams with entities (boxes), attributes (ovals), and relationships (diamonds).
+
+## Technology Stack
+- **React 18** with TypeScript
+- **Vite** - Build tool and dev server
+- **react-konva** - Canvas-based drawing library for interactive shapes
+- **Tailwind CSS** - Utility-first CSS framework for styling
+- **localStorage** - Client-side persistence
+
+## Project Structure
+src/
+├── main.tsx # Application entry point
+├── App.tsx # Main app component (toolbar, canvas, sidebar)
+├── App.css # Global styles with Tailwind imports
+├── types/
+│ └── diagram.ts # TypeScript interfaces for Entity, Attribute, Relationship, Diagram
+├── hooks/
+│ └── useDiagram.ts # Custom hook managing all diagram state and operations
+└── components/
+├── Canvas.tsx # Konva Stage/Layer wrapper, renders all diagram elements
+├── Toolbar.tsx # Top toolbar with add/save/load/clear buttons
+├── Sidebar.tsx # Right-side panel for editing selected items
+├── Entity.tsx # Entity box component (rectangle)
+├── Attribute.tsx # Attribute oval component (ellipse)
+├── Relationship.tsx # Relationship diamond component
+└── ConnectionLine.tsx # Line components and connection point calculations
+
+
+## Data Model
+
+### Entity
+- `id`: string (unique identifier)
+- `x`, `y`: number (position)
+- `width`, `height`: number (default: 120x60)
+- `label`: string (display text)
+- `isNew?`: boolean (starts in edit mode if true)
+
+### Attribute
+- `id`: string
+- `entityId`: string (parent entity reference)
+- `x`, `y`: number (position)
+- `label`: string
+- `isNew?`: boolean
+
+### Relationship
+- `id`: string
+- `x`, `y`: number (position)
+- `label`: string
+- `connectedEntities`: string[] (array of entity IDs)
+- `cardinalities?`: Record<string, '1' | '*' | '0..1' | '1..*'> (entityId -> cardinality)
+- `isNew?`: boolean
+
+### Diagram
+- `entities`: Entity[]
+- `attributes`: Attribute[]
+- `relationships`: Relationship[]
+
+## Key Features & Implementation
+
+### State Management
+- **useDiagram hook** (`src/hooks/useDiagram.ts`): Centralized state management
+  - Manages diagram state (entities, attributes, relationships)
+  - Handles CRUD operations for all diagram elements
+  - Auto-saves to localStorage on every change
+  - Includes `version` counter that increments on label updates to force React Konva remounts
+  - Selection state (selectedId, selectedType)
+
+### Canvas Rendering
+- **Canvas component** uses Konva Stage and Layer
+- All shapes are rendered as Konva components (Rect, Ellipse, Line, Text)
+- Connection lines are rendered first (behind shapes)
+- Shapes are rendered on top
+- **Critical**: Layer has `key={canvas-layer-${version}}` to force remount when labels change
+
+### Shape Components
+- **Entity**: Rectangle with centered text, draggable, double-click to edit (disabled - uses sidebar instead)
+- **Attribute**: Ellipse with centered text, connected to parent entity with dashed line
+- **Relationship**: Diamond shape (Line component with 4 points), connected to entities with dashed lines
+- All shapes support:
+  - Click to select (blue highlight border)
+  - Drag to reposition
+  - Attributes move with their parent entity when entity is dragged
+  - Labels editable via sidebar (not double-click)
+
+### Connection Lines
+- **Attributes**: Automatically connect to nearest edge of parent entity
+- **Relationships**: Connect from diamond corners to nearest edge of connected entities
+- Lines update dynamically when shapes are moved
+- Connection points calculated in `ConnectionLine.tsx` helper functions
+
+### Sidebar Editing
+- Opens when any shape is selected
+- Shows label input field (updates in real-time)
+- For relationships: Shows cardinality buttons (1, *, 0..1, 1..*) for each connected entity
+- Labels update immediately via version counter mechanism
+
+### Label Update Mechanism
+- **Critical Implementation Detail**: Labels update via a `version` counter system
+  - When `updateEntity`, `updateAttribute`, or `updateRelationship` is called with a label change
+  - The `version` state increments
+  - This version is passed to Canvas and used as `Layer` key: `key={canvas-layer-${version}}`
+  - Forces complete remount of all Konva components, ensuring labels update
+  - This mimics JSON loading behavior (which replaces entire diagram object)
+
+### User Interactions
+1. **Add Elements**: Click toolbar button → click on canvas
+   - Entities: Click anywhere
+   - Attributes: Click near an entity (auto-connects to nearest)
+   - Relationships: Click anywhere, then click entities to connect
+2. **Edit Labels**: Select shape → edit in sidebar → updates in real-time
+3. **Move Elements**: Click and drag
+4. **Delete**: Select element → press Delete/Backspace
+5. **Save/Load**: Toolbar buttons → JSON file download/upload
+
+### Cardinality
+- Relationships can have cardinality labels (1, *, 0..1, 1..*) at connection points
+- Set via sidebar when relationship is selected
+- Labels appear near entity connection points on relationship lines
+
+## Important Implementation Notes
+
+### React Konva Rendering
+- React Konva components don't always detect prop changes
+- Solution: Use version counter on Layer key to force remounts
+- Alternative approaches tried: useMemo, key props on individual components - these didn't work
+- Version counter on Layer is the working solution
+
+### Position Management
+- All positions are absolute (x, y coordinates)
+- Entities are positioned at top-left corner
+- Attributes and relationships are positioned at center
+- When entity moves, all its attributes move by the same delta
+
+### Connection Point Calculation
+- Attributes: Find nearest edge of entity to attribute center
+- Relationships: Find closest diamond corner to entity center, then find nearest entity edge point
+- Lines connect from shape edge to shape edge (not center to center)
+
+### Styling
+- Minimal, clean design with Tailwind CSS
+- Light gray background (#f9fafb)
+- White shapes with dark borders (#1e293b)
+- Blue selection highlight (#3b82f6)
+- Dashed connection lines (#94a3b8)
+
+### Persistence
+- Auto-saves to localStorage on every diagram change
+- Manual save/load via JSON file export/import
+- Load replaces entire diagram (triggers full remount - why it works)
+
+## Common Patterns
+
+### Adding New Features
+- State changes go through `useDiagram` hook
+- UI components receive callbacks from App component
+- Konva components receive props from Canvas component
+- Always increment version counter when labels change
+
+### Component Structure
+- Each shape component (Entity, Attribute, Relationship) follows similar pattern:
+  - Local state for editing mode
+  - useMemo for Text component to handle label changes
+  - Group wrapper with key that includes label
+  - Conditional rendering for edit vs display mode
+
+### Type Safety
+- All data structures are strongly typed in `types/diagram.ts`
+- Components use TypeScript interfaces
+- Update functions use `Partial<T>` for flexible updates
+
+## Known Behaviors
+- Labels update in real-time when edited in sidebar (thanks to version counter)
+- Attributes automatically move with their parent entity
+- Connection lines update when shapes are dragged
+- JSON loading works perfectly (full remount)
+- Shapes start in edit mode when first created (isNew flag)
+
+## Development Commands
+- `npm run dev` - Start development server
+- `npm run build` - Build for production
+- `npm run preview` - Preview production build%    

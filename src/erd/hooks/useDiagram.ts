@@ -154,7 +154,10 @@ export const useDiagram = () => {
     setDiagram((prev) => {
       const relationship = prev.relationships.find((r) => r.id === relationshipId);
       if (!relationship) return prev;
-      if (relationship.connectedEntities.includes(entityId)) return prev;
+      // Allow self-referencing relationships (same entity can be connected twice)
+      // Count occurrences to allow up to 2 connections (for self-reference)
+      const count = relationship.connectedEntities.filter(id => id === entityId).length;
+      if (count >= 2) return prev; // Already has two connections (self-reference)
       return {
         ...prev,
         relationships: prev.relationships.map((r) =>
@@ -177,15 +180,17 @@ export const useDiagram = () => {
     }));
   }, []);
 
-  const updateRelationshipCardinality = useCallback((relationshipId: string, entityId: string, cardinality: '1' | '*' | '0..1' | '1..*') => {
+  const updateRelationshipCardinality = useCallback((relationshipId: string, entityId: string, cardinality: '1' | '*' | '0..1' | '1..*', connectionIndex?: number) => {
     setDiagram((prev) => ({
       ...prev,
       relationships: prev.relationships.map((r) => {
         if (r.id !== relationshipId) return r;
         const cardinalities = r.cardinalities || {};
+        // For self-referencing relationships, use _self_0 or _self_1 key
+        const key = connectionIndex !== undefined ? `${entityId}_self_${connectionIndex}` : entityId;
         return {
           ...r,
-          cardinalities: { ...cardinalities, [entityId]: cardinality },
+          cardinalities: { ...cardinalities, [key]: cardinality },
         };
       }),
     }));
