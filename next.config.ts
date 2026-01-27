@@ -8,8 +8,9 @@ const nextConfig: NextConfig = {
   devIndicators: {
     position: 'bottom-right',
   },
+  // Use webpack for React resolution with react-konva
+  // This ensures React is resolved as a singleton to avoid version conflicts
   webpack: (config, { isServer }) => {
-    // Ensure React is resolved as a singleton to avoid version conflicts
     if (!isServer) {
       config.resolve.alias = {
         ...config.resolve.alias,
