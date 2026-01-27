@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Entity, Attribute, Relationship } from '../types/diagram';
 
 interface SidebarProps {
@@ -116,7 +116,7 @@ export const Sidebar = ({
             {(() => {
               // Track processed entities to handle self-references
               const processedEntities = new Set<string>();
-              const result: JSX.Element[] = [];
+              const result: React.ReactElement[] = [];
               
               relationship.connectedEntities.forEach((entityId, index) => {
                 const entity = diagram.entities.find((e) => e.id === entityId);
