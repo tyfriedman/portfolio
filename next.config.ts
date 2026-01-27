@@ -18,6 +18,13 @@ const nextConfig: NextConfig = {
         'react-dom': require.resolve('react-dom'),
       };
     }
+    
+    // Ignore canvas module (Node.js only, not needed for browser)
+    config.resolve.fallback = {
+      ...config.resolve.fallback,
+      canvas: false,
+    };
+    
     return config;
   },
 };
