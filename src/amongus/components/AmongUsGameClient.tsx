@@ -84,11 +84,14 @@ export function AmongUsGameClient() {
   useEffect(() => {
     if (!session) return;
 
+    // Capture current session so TypeScript knows it's non-null inside the async function
+    const currentSession = session;
     let cancelled = false;
 
     async function fetchState() {
+      if (!currentSession) return;
       try {
-        const { roomId, playerId } = session;
+        const { roomId, playerId } = currentSession;
 
         const { data: room, error: roomError } = await amongusSupabase
           .from("amongus_rooms")
