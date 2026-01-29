@@ -19,6 +19,39 @@ const ProjectsSection = () => {
               <span className="text-xs sm:text-sm text-gray-500 font-medium">Proprietary Project</span>
             </div>
           </div>
+
+          <div className="bg-white rounded-lg p-4 sm:p-6 md:p-8 shadow-sm border border-gray-200">
+            <h3 className="text-xl sm:text-2xl font-bold text-gray-800 mb-3 sm:mb-4">
+              Among Us IRL Task Game
+            </h3>
+            <p className="text-sm sm:text-base text-gray-600 mb-3 sm:mb-4 leading-relaxed">
+              A real-life party game built on Supabase and Next.js where one leader
+              creates a room, everyone joins with a code on mobile, and the app
+              randomly assigns crewmate and imposter roles along with location-based tasks.
+            </p>
+            <div className="flex flex-wrap gap-2 mb-3 sm:mb-4">
+              <span className="bg-red-100 text-red-800 px-3 py-1 rounded-full text-xs sm:text-sm">
+                Next.js
+              </span>
+              <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-xs sm:text-sm">
+                Supabase
+              </span>
+              <span className="bg-indigo-100 text-indigo-800 px-3 py-1 rounded-full text-xs sm:text-sm">
+                Realtime UX
+              </span>
+              <span className="bg-gray-100 text-gray-800 px-3 py-1 rounded-full text-xs sm:text-sm">
+                Mobile-first
+              </span>
+            </div>
+            <div className="flex space-x-4">
+              <a
+                href="/amongus"
+                className="text-xs sm:text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline"
+              >
+                Open live game
+              </a>
+            </div>
+          </div>
           
           <div className="bg-white rounded-lg p-4 sm:p-6 md:p-8 shadow-sm border border-gray-200">
             <h3 className="text-xl sm:text-2xl font-bold text-gray-800 mb-3 sm:mb-4">Automated Donation Intake System</h3>
