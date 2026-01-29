@@ -323,18 +323,17 @@ export function AmongUsGameClient() {
         TASKS_PER_PERSON
       );
 
-      // Update roles
-      const updates = players.map((p) => ({
-        id: p.id,
-        role: impostersSet.has(p.id) ? "imposter" : "crewmate",
-      }));
+      // Update roles for each player
+      for (const player of players) {
+        const role = impostersSet.has(player.id) ? "imposter" : "crewmate";
+        const { error: roleError } = await amongusSupabase
+          .from("amongus_players")
+          .update({ role })
+          .eq("id", player.id);
 
-      const { error: roleError } = await amongusSupabase
-        .from("amongus_players")
-        .upsert(updates, { onConflict: "id" });
-
-      if (roleError) {
-        throw roleError;
+        if (roleError) {
+          throw roleError;
+        }
       }
 
       // Clear previous tasks if any
