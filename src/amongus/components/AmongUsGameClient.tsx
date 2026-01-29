@@ -449,6 +449,25 @@ export function AmongUsGameClient() {
     setHasAlertedCompletion(false);
   }
 
+  async function handleLeaveGame() {
+    const current = session;
+    if (!current) {
+      handleResetToLanding();
+      return;
+    }
+
+    try {
+      await amongusSupabase
+        .from("amongus_players")
+        .delete()
+        .eq("id", current.playerId);
+    } catch (err) {
+      console.error("Failed to leave game", err);
+    } finally {
+      handleResetToLanding();
+    }
+  }
+
   const players = roomState?.players ?? [];
   const myPlayer = roomState?.myPlayer ?? null;
   const myTasks = roomState?.myTasks ?? [];
@@ -597,8 +616,16 @@ export function AmongUsGameClient() {
                 {session.code}
               </div>
               <div className="amongus-hint">
-                Share this code with everyone in the game.
+                Share this code with everyone in the game. You can leave and
+                join a different room at any time.
               </div>
+              <div style={{ height: "0.75rem" }} />
+              <button
+                className="amongus-button-secondary"
+                onClick={handleLeaveGame}
+              >
+                Leave Game
+              </button>
             </div>
 
             <div className="amongus-card">

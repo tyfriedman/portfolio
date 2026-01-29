@@ -78,22 +78,24 @@ export function assignTasksToPlayers(
     return new Map(players.map((p) => [p.id, []]));
   }
 
-  const totalNeeded = players.length * tasksPerPerson;
-  if (tasks.length < totalNeeded) {
+  if (tasks.length < tasksPerPerson) {
     throw new Error(
-      `Not enough tasks available. Need ${totalNeeded} but only ${tasks.length} available.`
+      `Not enough tasks available for each player. Need at least ${tasksPerPerson} unique tasks but only ${tasks.length} available.`
     );
   }
 
-  const pool = [...tasks];
-  shuffleInPlace(pool);
-
   const result = new Map<string, string[]>();
-  let index = 0;
 
   for (const player of players) {
-    const assigned = pool.slice(index, index + tasksPerPerson);
-    index += tasksPerPerson;
+    const availableForPlayer = [...tasks];
+    const assigned: string[] = [];
+
+    for (let i = 0; i < tasksPerPerson; i++) {
+      const randomIndex = Math.floor(Math.random() * availableForPlayer.length);
+      const [task] = availableForPlayer.splice(randomIndex, 1);
+      assigned.push(task);
+    }
+
     result.set(player.id, assigned);
   }
 
