@@ -69,10 +69,12 @@ export function AmongUsGameClient() {
   const [createName, setCreateName] = useState("");
   const [joinName, setJoinName] = useState("");
   const [joinCode, setJoinCode] = useState("");
-  // Track when tasks were completed for cooldown (taskId -> completion timestamp)
-  const [taskCooldowns, setTaskCooldowns] = useState<Map<string, number>>(
-    new Map()
+  // Global cooldown end timestamp (ms since epoch). While active, no tasks can be toggled.
+  const [tasksCooldownEndsAt, setTasksCooldownEndsAt] = useState<number | null>(
+    null
   );
+  // Ticks once per second while cooldown is active (drives UI countdown).
+  const [cooldownNowMs, setCooldownNowMs] = useState<number>(() => Date.now());
 
   // Load any existing session on first mount
   useEffect(() => {
@@ -178,37 +180,25 @@ export function AmongUsGameClient() {
     }
 
     pollState();
-    const id = window.setInterval(pollState, 3000);
+    const id = window.setInterval(pollState, 500);
     return () => {
       cancelled = true;
       window.clearInterval(id);
     };
   }, [session]);
 
-  // Clean up expired cooldowns every second
+  // Tick the cooldown timer (for UI) while active.
   useEffect(() => {
-    const interval = setInterval(() => {
-      setTaskCooldowns((prev) => {
-        const now = Date.now();
-        const next = new Map();
-        for (const [taskId, endTime] of prev.entries()) {
-          if (now < endTime) {
-            next.set(taskId, endTime);
-          }
-        }
-        return next;
-      });
-    }, 1000);
-    return () => clearInterval(interval);
-  }, []);
+    if (!tasksCooldownEndsAt) return;
+    const interval = window.setInterval(() => setCooldownNowMs(Date.now()), 1000);
+    return () => window.clearInterval(interval);
+  }, [tasksCooldownEndsAt]);
 
-  // Helper function to get remaining cooldown seconds
-  function getCooldownSeconds(taskId: string): number | null {
-    const cooldownEndTime = taskCooldowns.get(taskId);
-    if (!cooldownEndTime) return null;
-    const remaining = Math.ceil((cooldownEndTime - Date.now()) / 1000);
+  const tasksCooldownSecondsRemaining = (() => {
+    if (!tasksCooldownEndsAt) return null;
+    const remaining = Math.ceil((tasksCooldownEndsAt - cooldownNowMs) / 1000);
     return remaining > 0 ? remaining : null;
-  }
+  })();
 
   const isLeader = session?.isLeader ?? false;
   const currentRoomState = roomState?.room.state ?? "lobby";
@@ -472,32 +462,17 @@ export function AmongUsGameClient() {
   async function handleToggleTask(task: Task) {
     if (!session) return;
 
-    // Check cooldown - if task was completed within last 30 seconds, prevent toggle
-    const cooldownEndTime = taskCooldowns.get(task.id);
-    if (cooldownEndTime && Date.now() < cooldownEndTime) {
-      return; // Still in cooldown, ignore the click
-    }
-
-    // Only allow completing tasks (not uncompleting) during cooldown check
-    // But we still want to allow uncompleting if not in cooldown
-    if (task.is_completed) {
-      // Uncompleting - remove cooldown if exists
-      setTaskCooldowns((prev) => {
-        const next = new Map(prev);
-        next.delete(task.id);
-        return next;
-      });
-    } else {
-      // Completing - set cooldown for 30 seconds
-      const cooldownEnd = Date.now() + 30000; // 30 seconds
-      setTaskCooldowns((prev) => {
-        const next = new Map(prev);
-        next.set(task.id, cooldownEnd);
-        return next;
-      });
-    }
+    // Global cooldown: block any toggles while active.
+    if (tasksCooldownSecondsRemaining !== null) return;
 
     try {
+      // Starting a completion triggers a global 30s cooldown overlay
+      if (!task.is_completed) {
+        const endsAt = Date.now() + 30000;
+        setTasksCooldownEndsAt(endsAt);
+        setCooldownNowMs(Date.now());
+      }
+
       const { error: updateError } = await amongusSupabase
         .from("amongus_tasks")
         .update({ is_completed: !task.is_completed })
@@ -520,14 +495,8 @@ export function AmongUsGameClient() {
     } catch (err) {
       console.error(err);
       setError("Failed to update task.");
-      // On error, remove cooldown
-      if (!task.is_completed) {
-        setTaskCooldowns((prev) => {
-          const next = new Map(prev);
-          next.delete(task.id);
-          return next;
-        });
-      }
+      // On error, clear cooldown if we just started one
+      if (!task.is_completed) setTasksCooldownEndsAt(null);
     }
   }
 
@@ -537,7 +506,7 @@ export function AmongUsGameClient() {
     setRoomState(null);
     setMode("landing");
     setError(null);
-    setTaskCooldowns(new Map());
+    setTasksCooldownEndsAt(null);
   }
 
   async function handleLeaveGame() {
@@ -1009,55 +978,68 @@ export function AmongUsGameClient() {
                         starting the game.
                       </p>
                     )}
-                    <div className="amongus-tasks">
-                      {myTasks.map((task) => {
-                        const cooldownSeconds = getCooldownSeconds(task.id);
-                        const isInCooldown = cooldownSeconds !== null;
-                        return (
+                    <div style={{ position: "relative" }}>
+                      <div className="amongus-tasks">
+                        {myTasks.map((task) => (
                           <label
                             key={task.id}
                             className="amongus-task-row"
-                            style={{
-                              opacity: task.is_completed ? 0.6 : 1,
-                              position: "relative",
-                            }}
+                            style={{ opacity: task.is_completed ? 0.6 : 1 }}
                           >
                             <input
                               type="checkbox"
                               className="amongus-task-checkbox"
                               checked={task.is_completed}
                               onChange={() => handleToggleTask(task)}
-                              disabled={isInCooldown && !task.is_completed}
+                              disabled={tasksCooldownSecondsRemaining !== null}
                             />
                             <span className="amongus-task-text">
                               {task.task_text}
                             </span>
-                            {isInCooldown && (
-                              <div
-                                style={{
-                                  position: "absolute",
-                                  top: 0,
-                                  left: 0,
-                                  right: 0,
-                                  bottom: 0,
-                                  background: "rgba(15, 23, 42, 0.95)",
-                                  borderRadius: "0.5rem",
-                                  display: "flex",
-                                  alignItems: "center",
-                                  justifyContent: "center",
-                                  fontSize: "1.2rem",
-                                  fontWeight: 700,
-                                  color: "#f97316",
-                                  border: "2px solid rgba(249, 115, 22, 0.6)",
-                                  zIndex: 10,
-                                }}
-                              >
-                                {cooldownSeconds}s
-                              </div>
-                            )}
                           </label>
-                        );
-                      })}
+                        ))}
+                      </div>
+
+                      {tasksCooldownSecondsRemaining !== null && (
+                        <div
+                          style={{
+                            position: "absolute",
+                            inset: 0,
+                            background: "rgba(15, 23, 42, 0.95)",
+                            borderRadius: "0.75rem",
+                            display: "flex",
+                            flexDirection: "column",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            gap: "0.5rem",
+                            border: "2px solid rgba(249, 115, 22, 0.6)",
+                          }}
+                        >
+                          <div
+                            style={{
+                              fontSize: "0.9rem",
+                              color: "#cbd5f5",
+                              textTransform: "uppercase",
+                              letterSpacing: "0.08em",
+                              fontWeight: 700,
+                            }}
+                          >
+                            Cooldown
+                          </div>
+                          <div
+                            style={{
+                              fontSize: "2rem",
+                              fontWeight: 800,
+                              color: "#f97316",
+                            }}
+                          >
+                            {tasksCooldownSecondsRemaining}s
+                          </div>
+                          <div className="amongus-hint" style={{ textAlign: "center" }}>
+                            You can’t complete any tasks during the cooldown.
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </>
                 )}
@@ -1146,55 +1128,68 @@ export function AmongUsGameClient() {
                       Your role is now hidden. Complete your tasks (or pretend
                       to, if you&apos;re the imposter).
                     </p>
-                    <div className="amongus-tasks">
-                      {myTasks.map((task) => {
-                        const cooldownSeconds = getCooldownSeconds(task.id);
-                        const isInCooldown = cooldownSeconds !== null;
-                        return (
+                    <div style={{ position: "relative" }}>
+                      <div className="amongus-tasks">
+                        {myTasks.map((task) => (
                           <label
                             key={task.id}
                             className="amongus-task-row"
-                            style={{
-                              opacity: task.is_completed ? 0.6 : 1,
-                              position: "relative",
-                            }}
+                            style={{ opacity: task.is_completed ? 0.6 : 1 }}
                           >
                             <input
                               type="checkbox"
                               className="amongus-task-checkbox"
                               checked={task.is_completed}
                               onChange={() => handleToggleTask(task)}
-                              disabled={isInCooldown && !task.is_completed}
+                              disabled={tasksCooldownSecondsRemaining !== null}
                             />
                             <span className="amongus-task-text">
                               {task.task_text}
                             </span>
-                            {isInCooldown && (
-                              <div
-                                style={{
-                                  position: "absolute",
-                                  top: 0,
-                                  left: 0,
-                                  right: 0,
-                                  bottom: 0,
-                                  background: "rgba(15, 23, 42, 0.95)",
-                                  borderRadius: "0.5rem",
-                                  display: "flex",
-                                  alignItems: "center",
-                                  justifyContent: "center",
-                                  fontSize: "1.2rem",
-                                  fontWeight: 700,
-                                  color: "#f97316",
-                                  border: "2px solid rgba(249, 115, 22, 0.6)",
-                                  zIndex: 10,
-                                }}
-                              >
-                                {cooldownSeconds}s
-                              </div>
-                            )}
                           </label>
-                        );
-                      })}
+                        ))}
+                      </div>
+
+                      {tasksCooldownSecondsRemaining !== null && (
+                        <div
+                          style={{
+                            position: "absolute",
+                            inset: 0,
+                            background: "rgba(15, 23, 42, 0.95)",
+                            borderRadius: "0.75rem",
+                            display: "flex",
+                            flexDirection: "column",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            gap: "0.5rem",
+                            border: "2px solid rgba(249, 115, 22, 0.6)",
+                          }}
+                        >
+                          <div
+                            style={{
+                              fontSize: "0.9rem",
+                              color: "#cbd5f5",
+                              textTransform: "uppercase",
+                              letterSpacing: "0.08em",
+                              fontWeight: 700,
+                            }}
+                          >
+                            Cooldown
+                          </div>
+                          <div
+                            style={{
+                              fontSize: "2rem",
+                              fontWeight: 800,
+                              color: "#f97316",
+                            }}
+                          >
+                            {tasksCooldownSecondsRemaining}s
+                          </div>
+                          <div className="amongus-hint" style={{ textAlign: "center" }}>
+                            You can’t complete any tasks during the cooldown.
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </>
                 )}
