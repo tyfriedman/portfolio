@@ -458,7 +458,9 @@ export function AmongUsGameClient() {
       [...players].sort((a, b) => {
         if (a.is_leader && !b.is_leader) return -1;
         if (!a.is_leader && b.is_leader) return 1;
-        return a.created_at.localeCompare(b.created_at);
+        const aCreated = a.created_at ?? "";
+        const bCreated = b.created_at ?? "";
+        return aCreated.localeCompare(bCreated);
       }),
     [players]
   );
