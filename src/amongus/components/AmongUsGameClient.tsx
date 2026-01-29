@@ -69,7 +69,6 @@ export function AmongUsGameClient() {
   const [createName, setCreateName] = useState("");
   const [joinName, setJoinName] = useState("");
   const [joinCode, setJoinCode] = useState("");
-  const [hasAlertedCompletion, setHasAlertedCompletion] = useState(false);
 
   // Load any existing session on first mount
   useEffect(() => {
@@ -134,9 +133,13 @@ export function AmongUsGameClient() {
       const relevant = allTasks.filter(
         (t: any) => t.counts_for_completion === true
       );
+      const completedCrewmateTasks = relevant.filter(
+        (t: any) => t.is_completed === true
+      ).length;
+      const totalCrewmateTasks = relevant.length;
       const allCompleted =
-        relevant.length > 0 &&
-        relevant.every((t: any) => t.is_completed === true);
+        totalCrewmateTasks > 0 &&
+        completedCrewmateTasks === totalCrewmateTasks;
 
       const viewModel: RoomViewModel = {
         room,
@@ -144,6 +147,8 @@ export function AmongUsGameClient() {
         myPlayer,
         myTasks: tasks,
         allTasksCompleted: allCompleted,
+        completedCrewmateTasks,
+        totalCrewmateTasks,
       };
 
       setRoomState(viewModel);
@@ -176,14 +181,6 @@ export function AmongUsGameClient() {
     };
   }, [session]);
 
-  // Alert when all tasks complete (once)
-  useEffect(() => {
-    if (!roomState) return;
-    if (roomState.allTasksCompleted && !hasAlertedCompletion) {
-      setHasAlertedCompletion(true);
-      alert("All crewmate tasks are completed!");
-    }
-  }, [roomState, hasAlertedCompletion]);
 
   const isLeader = session?.isLeader ?? false;
   const currentRoomState = roomState?.room.state ?? "lobby";
@@ -242,7 +239,6 @@ export function AmongUsGameClient() {
       saveStoredSession(newSession);
       setMode("leader");
       setCreateName("");
-      setHasAlertedCompletion(false);
     } catch (err: any) {
       console.error(err);
       setError(err.message || "Failed to create game.");
@@ -275,17 +271,22 @@ export function AmongUsGameClient() {
 
       // Check if a player with this name already exists in the room
       const trimmedName = joinName.trim();
-      const { data: existingPlayer } = await amongusSupabase
+      const { data: existingPlayers, error: lookupError } = await amongusSupabase
         .from("amongus_players")
         .select("*")
         .eq("room_id", room.id)
         .eq("name", trimmedName)
-        .maybeSingle<Player>();
+        .limit(1);
 
       let player: Player;
-      if (existingPlayer) {
-        // Rejoin existing player
-        player = existingPlayer;
+      if (lookupError) {
+        // If lookup fails, just proceed to create a new player
+        console.warn("Error looking up existing player:", lookupError);
+      }
+
+      if (existingPlayers && existingPlayers.length > 0) {
+        // Rejoin existing player (use first match)
+        player = existingPlayers[0];
       } else {
         // Create new player
         const { data: newPlayer, error: playerError } = await amongusSupabase
@@ -315,7 +316,6 @@ export function AmongUsGameClient() {
       setMode("player");
       setJoinName("");
       setJoinCode("");
-      setHasAlertedCompletion(false);
     } catch (err: any) {
       console.error(err);
       setError(err.message || "Failed to join game.");
@@ -475,7 +475,6 @@ export function AmongUsGameClient() {
     setRoomState(null);
     setMode("landing");
     setError(null);
-    setHasAlertedCompletion(false);
   }
 
   async function handleLeaveGame() {
@@ -774,6 +773,52 @@ export function AmongUsGameClient() {
                       ) : null}
                     </div>
                     <div className="amongus-section-title">Your Tasks</div>
+                    {roomState && roomState.totalCrewmateTasks > 0 && (
+                      <div style={{ marginBottom: "1rem" }}>
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                            marginBottom: "0.5rem",
+                            fontSize: "0.85rem",
+                            color: "#9ca3af",
+                          }}
+                        >
+                          <span>Crewmate Task Progress</span>
+                          <span>
+                            {roomState.completedCrewmateTasks} /{" "}
+                            {roomState.totalCrewmateTasks}
+                          </span>
+                        </div>
+                        <div
+                          style={{
+                            width: "100%",
+                            height: "0.5rem",
+                            backgroundColor: "rgba(148, 163, 184, 0.2)",
+                            borderRadius: "9999px",
+                            overflow: "hidden",
+                          }}
+                        >
+                          <div
+                            style={{
+                              width: `${
+                                (roomState.completedCrewmateTasks /
+                                  roomState.totalCrewmateTasks) *
+                                100
+                              }%`,
+                              height: "100%",
+                              backgroundColor:
+                                roomState.allTasksCompleted
+                                  ? "#22c55e"
+                                  : "#3b82f6",
+                              transition: "width 0.3s ease, background-color 0.3s ease",
+                              borderRadius: "9999px",
+                            }}
+                          />
+                        </div>
+                      </div>
+                    )}
                     {allTasksCompleted && (
                       <div
                         style={{
@@ -836,6 +881,52 @@ export function AmongUsGameClient() {
                 {currentRoomState === "playing" && (
                   <>
                     <div className="amongus-section-title">Your Tasks</div>
+                    {roomState && roomState.totalCrewmateTasks > 0 && (
+                      <div style={{ marginBottom: "1rem" }}>
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                            marginBottom: "0.5rem",
+                            fontSize: "0.85rem",
+                            color: "#9ca3af",
+                          }}
+                        >
+                          <span>Crewmate Task Progress</span>
+                          <span>
+                            {roomState.completedCrewmateTasks} /{" "}
+                            {roomState.totalCrewmateTasks}
+                          </span>
+                        </div>
+                        <div
+                          style={{
+                            width: "100%",
+                            height: "0.5rem",
+                            backgroundColor: "rgba(148, 163, 184, 0.2)",
+                            borderRadius: "9999px",
+                            overflow: "hidden",
+                          }}
+                        >
+                          <div
+                            style={{
+                              width: `${
+                                (roomState.completedCrewmateTasks /
+                                  roomState.totalCrewmateTasks) *
+                                100
+                              }%`,
+                              height: "100%",
+                              backgroundColor:
+                                roomState.allTasksCompleted
+                                  ? "#22c55e"
+                                  : "#3b82f6",
+                              transition: "width 0.3s ease, background-color 0.3s ease",
+                              borderRadius: "9999px",
+                            }}
+                          />
+                        </div>
+                      </div>
+                    )}
                     {allTasksCompleted && (
                       <div
                         style={{

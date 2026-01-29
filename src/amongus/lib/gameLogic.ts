@@ -33,6 +33,8 @@ export interface RoomViewModel {
   myPlayer: Player | null;
   myTasks: Task[];
   allTasksCompleted: boolean;
+  completedCrewmateTasks: number;
+  totalCrewmateTasks: number;
 }
 
 function shuffleInPlace<T>(array: T[]): void {
