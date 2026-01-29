@@ -16,9 +16,9 @@ export const DEFAULT_TASKS: string[] = [
   "Watch 10 reels in the downstairs bathroom.",
 ];
 
-export const DRINKING_TASKS: string[] = [
-  "Drink 
-];
+// export const DRINKING_TASKS: string[] = [
+//   "Drink 
+// ];
 
 export const TASKS_PER_PERSON = 4;
 
