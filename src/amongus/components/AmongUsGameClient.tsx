@@ -69,6 +69,10 @@ export function AmongUsGameClient() {
   const [createName, setCreateName] = useState("");
   const [joinName, setJoinName] = useState("");
   const [joinCode, setJoinCode] = useState("");
+  // Track when tasks were completed for cooldown (taskId -> completion timestamp)
+  const [taskCooldowns, setTaskCooldowns] = useState<Map<string, number>>(
+    new Map()
+  );
 
   // Load any existing session on first mount
   useEffect(() => {
@@ -181,6 +185,30 @@ export function AmongUsGameClient() {
     };
   }, [session]);
 
+  // Clean up expired cooldowns every second
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTaskCooldowns((prev) => {
+        const now = Date.now();
+        const next = new Map();
+        for (const [taskId, endTime] of prev.entries()) {
+          if (now < endTime) {
+            next.set(taskId, endTime);
+          }
+        }
+        return next;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Helper function to get remaining cooldown seconds
+  function getCooldownSeconds(taskId: string): number | null {
+    const cooldownEndTime = taskCooldowns.get(taskId);
+    if (!cooldownEndTime) return null;
+    const remaining = Math.ceil((cooldownEndTime - Date.now()) / 1000);
+    return remaining > 0 ? remaining : null;
+  }
 
   const isLeader = session?.isLeader ?? false;
   const currentRoomState = roomState?.room.state ?? "lobby";
@@ -443,6 +471,32 @@ export function AmongUsGameClient() {
 
   async function handleToggleTask(task: Task) {
     if (!session) return;
+
+    // Check cooldown - if task was completed within last 30 seconds, prevent toggle
+    const cooldownEndTime = taskCooldowns.get(task.id);
+    if (cooldownEndTime && Date.now() < cooldownEndTime) {
+      return; // Still in cooldown, ignore the click
+    }
+
+    // Only allow completing tasks (not uncompleting) during cooldown check
+    // But we still want to allow uncompleting if not in cooldown
+    if (task.is_completed) {
+      // Uncompleting - remove cooldown if exists
+      setTaskCooldowns((prev) => {
+        const next = new Map(prev);
+        next.delete(task.id);
+        return next;
+      });
+    } else {
+      // Completing - set cooldown for 30 seconds
+      const cooldownEnd = Date.now() + 30000; // 30 seconds
+      setTaskCooldowns((prev) => {
+        const next = new Map(prev);
+        next.set(task.id, cooldownEnd);
+        return next;
+      });
+    }
+
     try {
       const { error: updateError } = await amongusSupabase
         .from("amongus_tasks")
@@ -466,6 +520,14 @@ export function AmongUsGameClient() {
     } catch (err) {
       console.error(err);
       setError("Failed to update task.");
+      // On error, remove cooldown
+      if (!task.is_completed) {
+        setTaskCooldowns((prev) => {
+          const next = new Map(prev);
+          next.delete(task.id);
+          return next;
+        });
+      }
     }
   }
 
@@ -475,6 +537,7 @@ export function AmongUsGameClient() {
     setRoomState(null);
     setMode("landing");
     setError(null);
+    setTaskCooldowns(new Map());
   }
 
   async function handleLeaveGame() {
@@ -691,18 +754,71 @@ export function AmongUsGameClient() {
                 <div className="amongus-section-title">Leader Controls</div>
                 <div className="amongus-input-row" style={{ marginBottom: 12 }}>
                   <label className="amongus-label">Number of Imposters</label>
-                  <input
-                    type="number"
-                    className="amongus-number-input"
-                    min={1}
-                    max={Math.max(1, players.length - 1)}
-                    value={roomState?.room.num_imposters ?? 1}
-                    onChange={(e) =>
-                      handleUpdateImposters(
-                        Math.max(1, parseInt(e.target.value || "1", 10))
-                      )
-                    }
-                  />
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "0.75rem",
+                    }}
+                  >
+                    <button
+                      type="button"
+                      className="amongus-button-secondary"
+                      style={{
+                        width: "auto",
+                        minWidth: "3rem",
+                        padding: "0.7rem 1rem",
+                      }}
+                      onClick={() => {
+                        const current = roomState?.room.num_imposters ?? 1;
+                        if (current > 1) {
+                          handleUpdateImposters(current - 1);
+                        }
+                      }}
+                      disabled={
+                        (roomState?.room.num_imposters ?? 1) <= 1
+                      }
+                    >
+                      −
+                    </button>
+                    <div
+                      style={{
+                        flex: 1,
+                        textAlign: "center",
+                        fontSize: "1.2rem",
+                        fontWeight: 600,
+                        color: "#e5e7eb",
+                        padding: "0.7rem 1rem",
+                        background: "rgba(15, 23, 42, 0.85)",
+                        borderRadius: "9999px",
+                        border: "1px solid rgba(148, 163, 184, 0.6)",
+                      }}
+                    >
+                      {roomState?.room.num_imposters ?? 1}
+                    </div>
+                    <button
+                      type="button"
+                      className="amongus-button-secondary"
+                      style={{
+                        width: "auto",
+                        minWidth: "3rem",
+                        padding: "0.7rem 1rem",
+                      }}
+                      onClick={() => {
+                        const current = roomState?.room.num_imposters ?? 1;
+                        const max = Math.max(1, players.length - 1);
+                        if (current < max) {
+                          handleUpdateImposters(current + 1);
+                        }
+                      }}
+                      disabled={
+                        (roomState?.room.num_imposters ?? 1) >=
+                        Math.max(1, players.length - 1)
+                      }
+                    >
+                      +
+                    </button>
+                  </div>
                   <div className="amongus-hint">
                     You must have fewer imposters than total players.
                   </div>
@@ -894,23 +1010,54 @@ export function AmongUsGameClient() {
                       </p>
                     )}
                     <div className="amongus-tasks">
-                      {myTasks.map((task) => (
-                        <label
-                          key={task.id}
-                          className="amongus-task-row"
-                          style={{ opacity: task.is_completed ? 0.6 : 1 }}
-                        >
-                          <input
-                            type="checkbox"
-                            className="amongus-task-checkbox"
-                            checked={task.is_completed}
-                            onChange={() => handleToggleTask(task)}
-                          />
-                          <span className="amongus-task-text">
-                            {task.task_text}
-                          </span>
-                        </label>
-                      ))}
+                      {myTasks.map((task) => {
+                        const cooldownSeconds = getCooldownSeconds(task.id);
+                        const isInCooldown = cooldownSeconds !== null;
+                        return (
+                          <label
+                            key={task.id}
+                            className="amongus-task-row"
+                            style={{
+                              opacity: task.is_completed ? 0.6 : 1,
+                              position: "relative",
+                            }}
+                          >
+                            <input
+                              type="checkbox"
+                              className="amongus-task-checkbox"
+                              checked={task.is_completed}
+                              onChange={() => handleToggleTask(task)}
+                              disabled={isInCooldown && !task.is_completed}
+                            />
+                            <span className="amongus-task-text">
+                              {task.task_text}
+                            </span>
+                            {isInCooldown && (
+                              <div
+                                style={{
+                                  position: "absolute",
+                                  top: 0,
+                                  left: 0,
+                                  right: 0,
+                                  bottom: 0,
+                                  background: "rgba(15, 23, 42, 0.95)",
+                                  borderRadius: "0.5rem",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  fontSize: "1.2rem",
+                                  fontWeight: 700,
+                                  color: "#f97316",
+                                  border: "2px solid rgba(249, 115, 22, 0.6)",
+                                  zIndex: 10,
+                                }}
+                              >
+                                {cooldownSeconds}s
+                              </div>
+                            )}
+                          </label>
+                        );
+                      })}
                     </div>
                   </>
                 )}
@@ -1000,23 +1147,54 @@ export function AmongUsGameClient() {
                       to, if you&apos;re the imposter).
                     </p>
                     <div className="amongus-tasks">
-                      {myTasks.map((task) => (
-                        <label
-                          key={task.id}
-                          className="amongus-task-row"
-                          style={{ opacity: task.is_completed ? 0.6 : 1 }}
-                        >
-                          <input
-                            type="checkbox"
-                            className="amongus-task-checkbox"
-                            checked={task.is_completed}
-                            onChange={() => handleToggleTask(task)}
-                          />
-                          <span className="amongus-task-text">
-                            {task.task_text}
-                          </span>
-                        </label>
-                      ))}
+                      {myTasks.map((task) => {
+                        const cooldownSeconds = getCooldownSeconds(task.id);
+                        const isInCooldown = cooldownSeconds !== null;
+                        return (
+                          <label
+                            key={task.id}
+                            className="amongus-task-row"
+                            style={{
+                              opacity: task.is_completed ? 0.6 : 1,
+                              position: "relative",
+                            }}
+                          >
+                            <input
+                              type="checkbox"
+                              className="amongus-task-checkbox"
+                              checked={task.is_completed}
+                              onChange={() => handleToggleTask(task)}
+                              disabled={isInCooldown && !task.is_completed}
+                            />
+                            <span className="amongus-task-text">
+                              {task.task_text}
+                            </span>
+                            {isInCooldown && (
+                              <div
+                                style={{
+                                  position: "absolute",
+                                  top: 0,
+                                  left: 0,
+                                  right: 0,
+                                  bottom: 0,
+                                  background: "rgba(15, 23, 42, 0.95)",
+                                  borderRadius: "0.5rem",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  fontSize: "1.2rem",
+                                  fontWeight: 700,
+                                  color: "#f97316",
+                                  border: "2px solid rgba(249, 115, 22, 0.6)",
+                                  zIndex: 10,
+                                }}
+                              >
+                                {cooldownSeconds}s
+                              </div>
+                            )}
+                          </label>
+                        );
+                      })}
                     </div>
                   </>
                 )}

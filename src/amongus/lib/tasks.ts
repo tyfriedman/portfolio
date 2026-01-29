@@ -7,13 +7,17 @@ export const DEFAULT_TASKS: string[] = [
   "Bring a beer from the beer room to Thomas's room.",
   "Sort cards in the laundry room and then shuffle them.",
   "Turn on or change the YouTube video downstairs.",
-  "Get a two star attack on Clash in Diddy's room.",
+  "Get a two star attack on Clash in small closet.",
   "Sit on Derek/Thomas's toilet for a minute.",
   "Look at yourself in the mirror for a minute in Ty's room.",
   "Do 20 pushups in Fitz/Jordan's room.",
   "Turn around 20 times or wait 2 minutes in the beer room.",
   "Do 15 crunches behind Thomas's bed.",
-  "Watch 10 reels in the bag bathroom.",
+  "Watch 10 reels in the downstairs bathroom.",
+];
+
+export const DRINKING_TASKS: string[] = [
+  "Drink 
 ];
 
 export const TASKS_PER_PERSON = 4;
