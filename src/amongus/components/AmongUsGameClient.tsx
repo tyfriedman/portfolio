@@ -772,6 +772,43 @@ export function AmongUsGameClient() {
                         </span>
                       ) : null}
                     </div>
+                    {myPlayer.role === "imposter" && (
+                      <div style={{ marginBottom: "1rem" }}>
+                        <div className="amongus-section-title">
+                          Other Imposters
+                        </div>
+                        {(() => {
+                          const otherImposters = players.filter(
+                            (p) =>
+                              p.role === "imposter" && p.id !== myPlayer.id
+                          );
+                          if (otherImposters.length === 0) {
+                            return (
+                              <p className="amongus-hint">
+                                You are the only imposter.
+                              </p>
+                            );
+                          }
+                          return (
+                            <ul className="amongus-players-list">
+                              {otherImposters.map((p) => (
+                                <li
+                                  key={p.id}
+                                  className="amongus-player-pill"
+                                  style={{
+                                    background: "rgba(239, 68, 68, 0.2)",
+                                    borderColor: "rgba(239, 68, 68, 0.8)",
+                                    color: "#fecaca",
+                                  }}
+                                >
+                                  🔴 {p.name}
+                                </li>
+                              ))}
+                            </ul>
+                          );
+                        })()}
+                      </div>
+                    )}
                     <div className="amongus-section-title">Your Tasks</div>
                     {roomState && roomState.totalCrewmateTasks > 0 && (
                       <div style={{ marginBottom: "1rem" }}>
