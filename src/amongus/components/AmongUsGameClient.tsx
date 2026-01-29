@@ -80,6 +80,81 @@ export function AmongUsGameClient() {
     }
   }, []);
 
+  // Reusable function to fetch room state
+  async function fetchRoomState(
+    sessionToUse: StoredSession
+  ): Promise<RoomViewModel | null> {
+    try {
+      const { roomId, playerId } = sessionToUse;
+
+      const { data: room, error: roomError } = await amongusSupabase
+        .from("amongus_rooms")
+        .select("*")
+        .eq("id", roomId)
+        .single<Room>();
+
+      if (roomError || !room) {
+        throw roomError ?? new Error("Room not found");
+      }
+
+      const { data: players, error: playersError } = await amongusSupabase
+        .from("amongus_players")
+        .select("*")
+        .eq("room_id", roomId)
+        .order("created_at", { ascending: true })
+        .returns<Player[]>();
+
+      if (playersError || !players) {
+        throw playersError ?? new Error("Players not found");
+      }
+
+      const myPlayer = players.find((p) => p.id === playerId) ?? null;
+
+      const { data: tasks, error: tasksError } = await amongusSupabase
+        .from("amongus_tasks")
+        .select("*")
+        .eq("room_id", roomId)
+        .eq("player_id", playerId)
+        .order("created_at", { ascending: true })
+        .returns<Task[]>();
+
+      if (tasksError || !tasks) {
+        throw tasksError ?? new Error("Tasks not found");
+      }
+
+      const { data: allTasks, error: allTasksError } = await amongusSupabase
+        .from("amongus_tasks")
+        .select("id, is_completed, counts_for_completion")
+        .eq("room_id", roomId);
+
+      if (allTasksError || !allTasks) {
+        throw allTasksError ?? new Error("Tasks not found");
+      }
+
+      const relevant = allTasks.filter(
+        (t: any) => t.counts_for_completion === true
+      );
+      const allCompleted =
+        relevant.length > 0 &&
+        relevant.every((t: any) => t.is_completed === true);
+
+      const viewModel: RoomViewModel = {
+        room,
+        players,
+        myPlayer,
+        myTasks: tasks,
+        allTasksCompleted: allCompleted,
+      };
+
+      setRoomState(viewModel);
+      return viewModel;
+    } catch (err) {
+      console.error("Error fetching room state", err);
+      setError("Unable to sync game state. Retrying...");
+      return null;
+    }
+  }
+
   // Polling for room state every 3 seconds
   useEffect(() => {
     if (!session) return;
@@ -88,81 +163,13 @@ export function AmongUsGameClient() {
     const currentSession = session;
     let cancelled = false;
 
-    async function fetchState() {
-      if (!currentSession) return;
-      try {
-        const { roomId, playerId } = currentSession;
-
-        const { data: room, error: roomError } = await amongusSupabase
-          .from("amongus_rooms")
-          .select("*")
-          .eq("id", roomId)
-          .single<Room>();
-
-        if (roomError || !room) {
-          throw roomError ?? new Error("Room not found");
-        }
-
-        const { data: players, error: playersError } = await amongusSupabase
-          .from("amongus_players")
-          .select("*")
-          .eq("room_id", roomId)
-          .order("created_at", { ascending: true })
-          .returns<Player[]>();
-
-        if (playersError || !players) {
-          throw playersError ?? new Error("Players not found");
-        }
-
-        const myPlayer = players.find((p) => p.id === playerId) ?? null;
-
-        const { data: tasks, error: tasksError } = await amongusSupabase
-          .from("amongus_tasks")
-          .select("*")
-          .eq("room_id", roomId)
-          .eq("player_id", playerId)
-          .order("created_at", { ascending: true })
-          .returns<Task[]>();
-
-        if (tasksError || !tasks) {
-          throw tasksError ?? new Error("Tasks not found");
-        }
-
-        const { data: allTasks, error: allTasksError } = await amongusSupabase
-          .from("amongus_tasks")
-          .select("id, is_completed, counts_for_completion")
-          .eq("room_id", roomId);
-
-        if (allTasksError || !allTasks) {
-          throw allTasksError ?? new Error("Tasks not found");
-        }
-
-        const relevant = allTasks.filter(
-          (t: any) => t.counts_for_completion === true
-        );
-        const allCompleted =
-          relevant.length > 0 &&
-          relevant.every((t: any) => t.is_completed === true);
-
-        if (!cancelled) {
-          setRoomState({
-            room,
-            players,
-            myPlayer,
-            myTasks: tasks,
-            allTasksCompleted: allCompleted,
-          });
-        }
-      } catch (err) {
-        if (!cancelled) {
-          console.error("Error fetching room state", err);
-          setError("Unable to sync game state. Retrying...");
-        }
-      }
+    async function pollState() {
+      if (!currentSession || cancelled) return;
+      await fetchRoomState(currentSession);
     }
 
-    fetchState();
-    const id = window.setInterval(fetchState, 3000);
+    pollState();
+    const id = window.setInterval(pollState, 3000);
     return () => {
       cancelled = true;
       window.clearInterval(id);
@@ -266,18 +273,35 @@ export function AmongUsGameClient() {
         throw roomError ?? new Error("Room not found or already ended");
       }
 
-      const { data: player, error: playerError } = await amongusSupabase
+      // Check if a player with this name already exists in the room
+      const trimmedName = joinName.trim();
+      const { data: existingPlayer } = await amongusSupabase
         .from("amongus_players")
-        .insert({
-          room_id: room.id,
-          name: joinName.trim(),
-          is_leader: false,
-        })
         .select("*")
-        .single<Player>();
+        .eq("room_id", room.id)
+        .eq("name", trimmedName)
+        .maybeSingle<Player>();
 
-      if (playerError || !player) {
-        throw playerError ?? new Error("Failed to join room");
+      let player: Player;
+      if (existingPlayer) {
+        // Rejoin existing player
+        player = existingPlayer;
+      } else {
+        // Create new player
+        const { data: newPlayer, error: playerError } = await amongusSupabase
+          .from("amongus_players")
+          .insert({
+            room_id: room.id,
+            name: trimmedName,
+            is_leader: false,
+          })
+          .select("*")
+          .single<Player>();
+
+        if (playerError || !newPlayer) {
+          throw playerError ?? new Error("Failed to join room");
+        }
+        player = newPlayer;
       }
 
       const newSession: StoredSession = {
@@ -384,6 +408,8 @@ export function AmongUsGameClient() {
         .from("amongus_rooms")
         .update({ num_imposters: num })
         .eq("id", session.roomId);
+      // Immediately refresh state
+      await fetchRoomState(session);
     } catch (err) {
       console.error("Failed to update imposter count", err);
     }
@@ -416,6 +442,7 @@ export function AmongUsGameClient() {
   }
 
   async function handleToggleTask(task: Task) {
+    if (!session) return;
     try {
       const { error: updateError } = await amongusSupabase
         .from("amongus_tasks")
@@ -433,6 +460,9 @@ export function AmongUsGameClient() {
           ),
         };
       });
+
+      // Immediately refresh state to get accurate completion status
+      await fetchRoomState(session);
     } catch (err) {
       console.error(err);
       setError("Failed to update task.");
@@ -483,8 +513,20 @@ export function AmongUsGameClient() {
     [players]
   );
 
+  const allTasksCompleted = roomState?.allTasksCompleted ?? false;
+
   return (
-    <div className="amongus-root">
+    <div
+      className="amongus-root"
+      style={
+        allTasksCompleted
+          ? {
+              background:
+                "radial-gradient(circle at top, #065f46, #022c22)",
+            }
+          : undefined
+      }
+    >
       <div className="amongus-container">
         <header className="amongus-card">
           <div className="amongus-heading">Among Us IRL</div>
@@ -732,6 +774,37 @@ export function AmongUsGameClient() {
                       ) : null}
                     </div>
                     <div className="amongus-section-title">Your Tasks</div>
+                    {allTasksCompleted && (
+                      <div
+                        style={{
+                          textAlign: "center",
+                          padding: "1.5rem",
+                          marginBottom: "1rem",
+                          borderRadius: "0.75rem",
+                          background: "rgba(34, 197, 94, 0.2)",
+                          border: "2px solid rgba(34, 197, 94, 0.8)",
+                        }}
+                      >
+                        <div
+                          style={{
+                            fontSize: "1.5rem",
+                            fontWeight: 700,
+                            color: "#bbf7d0",
+                            marginBottom: "0.5rem",
+                          }}
+                        >
+                          🎉 Crewmates Win! 🎉
+                        </div>
+                        <div
+                          style={{
+                            fontSize: "0.9rem",
+                            color: "#86efac",
+                          }}
+                        >
+                          All crewmate tasks have been completed!
+                        </div>
+                      </div>
+                    )}
                     {myTasks.length === 0 && (
                       <p className="amongus-hint">
                         No tasks assigned yet. Your leader may need to retry
@@ -763,6 +836,37 @@ export function AmongUsGameClient() {
                 {currentRoomState === "playing" && (
                   <>
                     <div className="amongus-section-title">Your Tasks</div>
+                    {allTasksCompleted && (
+                      <div
+                        style={{
+                          textAlign: "center",
+                          padding: "1.5rem",
+                          marginBottom: "1rem",
+                          borderRadius: "0.75rem",
+                          background: "rgba(34, 197, 94, 0.2)",
+                          border: "2px solid rgba(34, 197, 94, 0.8)",
+                        }}
+                      >
+                        <div
+                          style={{
+                            fontSize: "1.5rem",
+                            fontWeight: 700,
+                            color: "#bbf7d0",
+                            marginBottom: "0.5rem",
+                          }}
+                        >
+                          🎉 Crewmates Win! 🎉
+                        </div>
+                        <div
+                          style={{
+                            fontSize: "0.9rem",
+                            color: "#86efac",
+                          }}
+                        >
+                          All crewmate tasks have been completed!
+                        </div>
+                      </div>
+                    )}
                     <p className="amongus-hint">
                       Your role is now hidden. Complete your tasks (or pretend
                       to, if you&apos;re the imposter).
