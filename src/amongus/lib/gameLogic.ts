@@ -5,6 +5,7 @@ export interface Player {
   name: string;
   is_leader: boolean;
   role: "imposter" | "crewmate" | null;
+  created_at?: string;
 }
 
 export interface Task {
@@ -14,6 +15,7 @@ export interface Task {
   task_text: string;
   is_completed: boolean;
   counts_for_completion: boolean;
+  created_at?: string;
 }
 
 export interface Room {
@@ -22,6 +24,7 @@ export interface Room {
   leader_player_id: string | null;
   state: RoomState;
   num_imposters: number;
+  created_at?: string;
 }
 
 export interface RoomViewModel {
