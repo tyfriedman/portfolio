@@ -1,51 +1,92 @@
 'use client';
 
-import React from 'react';
-import { Stage, Layer, Text } from 'react-konva';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
+import { Stage, Layer, Text, Shape, Rect, Ellipse, Line } from 'react-konva';
+import Konva from 'konva';
 import { Entity } from './Entity';
 import { Attribute } from './Attribute';
 import { Relationship } from './Relationship';
-import { ConnectionLine, getAttributeConnectionPoints, getRelationshipConnectionPoints, getSelfReferencingConnectionPoints } from './ConnectionLine';
-import { useEffect, useRef } from 'react';
-import { Diagram } from '../types/diagram';
+import { ConnectionLine } from './ConnectionLine';
+import { Diagram, ElementType, Entity as EntityType } from '../types/diagram';
+import { CanvasTheme } from '../theme';
+import {
+  ATTRIBUTE_WIDTH,
+  ATTRIBUTE_HEIGHT,
+  RELATIONSHIP_SIZE,
+  ENTITY_WIDTH,
+  ENTITY_HEIGHT,
+  getAttributeConnectionPoints,
+  getRelationshipConnectionPoints,
+  getSelfReferencingConnectionPoints,
+  Point,
+} from '../lib/geometry';
+import { ViewState, MIN_SCALE, MAX_SCALE, GRID_SIZE } from '../lib/view';
+
+const ATTRIBUTE_ATTACH_RADIUS = 250;
 
 interface CanvasProps {
   width: number;
   height: number;
   diagram: Diagram;
-  version: number;
+  theme: CanvasTheme;
   selectedId: string | null;
-  selectedType: 'entity' | 'attribute' | 'relationship' | null;
-  pendingAction: 'entity' | 'attribute' | 'relationship' | null;
-  onUpdateEntity: (id: string, updates: Partial<import('../types/diagram').Entity>) => void;
-  onUpdateAttribute: (id: string, updates: Partial<import('../types/diagram').Attribute>) => void;
-  onUpdateRelationship: (id: string, updates: Partial<import('../types/diagram').Relationship>) => void;
-  onDeleteEntity: (id: string) => void;
-  onDeleteAttribute: (id: string) => void;
-  onDeleteRelationship: (id: string) => void;
-  onSelectItem: (id: string, type: 'entity' | 'attribute' | 'relationship', openSidebar?: boolean) => void;
+  selectedType: ElementType | null;
+  pendingAction: ElementType | null;
+  snapToGrid: boolean;
+  view: ViewState;
+  onViewChange: React.Dispatch<React.SetStateAction<ViewState>>;
+  onStageReady: (stage: Konva.Stage | null) => void;
+  onMoveEntity: (id: string, x: number, y: number) => void;
+  onMoveAttribute: (id: string, x: number, y: number) => void;
+  onMoveRelationship: (id: string, x: number, y: number) => void;
+  onSelectItem: (id: string, type: ElementType) => void;
   onDeselect: () => void;
   onAddEntity: (x: number, y: number) => void;
   onAddAttribute: (entityId: string, x: number, y: number) => void;
   onAddRelationship: (x: number, y: number) => void;
   onCancelPendingAction: () => void;
   onConnectRelationshipToEntity: (relationshipId: string, entityId: string) => void;
+  onPlacementMiss: () => void;
 }
+
+/** Find a free spot around an entity for a newly attached attribute. */
+const findNonOverlappingPosition = (entity: EntityType, diagram: Diagram): Point => {
+  const SPACING = 24;
+  const positions = [
+    { x: entity.x + entity.width / 2, y: entity.y - SPACING - ATTRIBUTE_HEIGHT / 2 },
+    { x: entity.x + entity.width + SPACING + ATTRIBUTE_WIDTH / 2, y: entity.y + entity.height / 2 },
+    { x: entity.x + entity.width / 2, y: entity.y + entity.height + SPACING + ATTRIBUTE_HEIGHT / 2 },
+    { x: entity.x - SPACING - ATTRIBUTE_WIDTH / 2, y: entity.y + entity.height / 2 },
+  ];
+
+  for (const pos of positions) {
+    const overlaps = diagram.attributes.some((attr) => {
+      if (attr.entityId !== entity.id) return false;
+      return (
+        Math.abs(attr.x - pos.x) < ATTRIBUTE_WIDTH &&
+        Math.abs(attr.y - pos.y) < ATTRIBUTE_HEIGHT
+      );
+    });
+    if (!overlaps) return pos;
+  }
+  return positions[0];
+};
 
 export const Canvas = ({
   width,
   height,
   diagram,
-  version,
+  theme,
   selectedId,
   selectedType,
   pendingAction,
-  onUpdateEntity,
-  onUpdateAttribute,
-  onUpdateRelationship,
-  onDeleteEntity,
-  onDeleteAttribute,
-  onDeleteRelationship,
+  snapToGrid,
+  view,
+  onViewChange,
+  onStageReady,
+  onMoveEntity,
+  onMoveAttribute,
+  onMoveRelationship,
   onSelectItem,
   onDeselect,
   onAddEntity,
@@ -53,205 +94,289 @@ export const Canvas = ({
   onAddRelationship,
   onCancelPendingAction,
   onConnectRelationshipToEntity,
+  onPlacementMiss,
 }: CanvasProps) => {
-  const stageRef = useRef<any>(null);
+  const stageRef = useRef<Konva.Stage | null>(null);
+  const [spaceDown, setSpaceDown] = useState(false);
+  const [isPanning, setIsPanning] = useState(false);
+  const panLast = useRef<Point | null>(null);
+  const [ghostPos, setGhostPos] = useState<Point | null>(null);
 
-  // Handle keyboard shortcuts
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Don't delete if user is typing in an input field
-      const target = e.target as HTMLElement;
-      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
-        return;
-      }
+    onStageReady(stageRef.current);
+    return () => onStageReady(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-      if (e.key === 'Delete' || e.key === 'Backspace') {
-        if (selectedId && selectedType) {
-          if (selectedType === 'entity') {
-            onDeleteEntity(selectedId);
-          } else if (selectedType === 'attribute') {
-            onDeleteAttribute(selectedId);
-          } else if (selectedType === 'relationship') {
-            onDeleteRelationship(selectedId);
-          }
-        }
+  // Space-bar hold enables panning
+  useEffect(() => {
+    const down = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) return;
+      if (e.code === 'Space') {
+        e.preventDefault();
+        setSpaceDown(true);
       }
     };
+    const up = (e: KeyboardEvent) => {
+      if (e.code === 'Space') setSpaceDown(false);
+    };
+    window.addEventListener('keydown', down);
+    window.addEventListener('keyup', up);
+    return () => {
+      window.removeEventListener('keydown', down);
+      window.removeEventListener('keyup', up);
+    };
+  }, []);
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedId, selectedType, onDeleteEntity, onDeleteAttribute, onDeleteRelationship]);
+  const snap = useCallback(
+    (v: number) => (snapToGrid ? Math.round(v / GRID_SIZE) * GRID_SIZE : v),
+    [snapToGrid]
+  );
 
-  const handleStageClick = (e: any) => {
+  /** Convert a screen (stage container) point to model coordinates. */
+  const toModel = useCallback(
+    (screen: Point): Point => ({
+      x: (screen.x - view.x) / view.scale,
+      y: (screen.y - view.y) / view.scale,
+    }),
+    [view]
+  );
+
+  const handleWheel = (e: Konva.KonvaEventObject<WheelEvent>) => {
+    e.evt.preventDefault();
+    const stage = stageRef.current;
+    if (!stage) return;
+
+    if (e.evt.ctrlKey || e.evt.metaKey) {
+      // Pinch gesture / ctrl+wheel: zoom toward cursor
+      const pointer = stage.getPointerPosition();
+      if (!pointer) return;
+      const zoomFactor = Math.exp(-e.evt.deltaY * 0.01);
+      onViewChange((v) => {
+        const newScale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, v.scale * zoomFactor));
+        const modelX = (pointer.x - v.x) / v.scale;
+        const modelY = (pointer.y - v.y) / v.scale;
+        return {
+          scale: newScale,
+          x: pointer.x - modelX * newScale,
+          y: pointer.y - modelY * newScale,
+        };
+      });
+    } else {
+      // Plain wheel / two-finger scroll: pan
+      const { deltaX, deltaY } = e.evt;
+      onViewChange((v) => ({ ...v, x: v.x - deltaX, y: v.y - deltaY }));
+    }
+  };
+
+  const handleMouseDown = (e: Konva.KonvaEventObject<MouseEvent>) => {
+    const isMiddle = e.evt.button === 1;
+    if (spaceDown || isMiddle) {
+      e.evt.preventDefault();
+      setIsPanning(true);
+      panLast.current = { x: e.evt.clientX, y: e.evt.clientY };
+    }
+  };
+
+  const handleMouseMove = (e: Konva.KonvaEventObject<MouseEvent>) => {
+    if (isPanning && panLast.current) {
+      const dx = e.evt.clientX - panLast.current.x;
+      const dy = e.evt.clientY - panLast.current.y;
+      panLast.current = { x: e.evt.clientX, y: e.evt.clientY };
+      onViewChange((v) => ({ ...v, x: v.x + dx, y: v.y + dy }));
+      return;
+    }
+    if (pendingAction) {
+      const stage = stageRef.current;
+      const pointer = stage?.getPointerPosition();
+      if (pointer) setGhostPos(toModel(pointer));
+    }
+  };
+
+  const handleMouseUp = () => {
+    if (isPanning) {
+      setIsPanning(false);
+      panLast.current = null;
+    }
+  };
+
+  useEffect(() => {
+    if (!pendingAction) setGhostPos(null);
+  }, [pendingAction]);
+
+  const nearestEntityTo = (point: Point): { entity: EntityType; dist: number } | null => {
+    let best: { entity: EntityType; dist: number } | null = null;
+    for (const entity of diagram.entities) {
+      const cx = entity.x + entity.width / 2;
+      const cy = entity.y + entity.height / 2;
+      const dist = Math.hypot(point.x - cx, point.y - cy);
+      if (!best || dist < best.dist) best = { entity, dist };
+    }
+    return best;
+  };
+
+  // Entity highlighted as attach target while placing an attribute
+  const attachTarget =
+    pendingAction === 'attribute' && ghostPos
+      ? (() => {
+          const nearest = nearestEntityTo(ghostPos);
+          return nearest && nearest.dist < ATTRIBUTE_ATTACH_RADIUS ? nearest.entity : null;
+        })()
+      : null;
+
+  const handleStageClick = (e: Konva.KonvaEventObject<MouseEvent | Event>) => {
+    if (isPanning || spaceDown) return;
     const stage = e.target.getStage();
-    const pointerPos = stage.getPointerPosition();
-    
-    // If clicking on empty space (the stage itself)
-    if (e.target === stage) {
-      if (pendingAction) {
-        // Handle pending action
-        if (pendingAction === 'entity') {
-          onAddEntity(pointerPos.x - 60, pointerPos.y - 30);
-          onCancelPendingAction();
-        } else if (pendingAction === 'attribute') {
-          // Find nearest entity
-          let nearestEntity = diagram.entities[0];
-          let minDist = Infinity;
-          for (const entity of diagram.entities) {
-            const entityCenterX = entity.x + entity.width / 2;
-            const entityCenterY = entity.y + entity.height / 2;
-            const dist = Math.sqrt(
-              Math.pow(pointerPos.x - entityCenterX, 2) + Math.pow(pointerPos.y - entityCenterY, 2)
-            );
-            if (dist < minDist) {
-              minDist = dist;
-              nearestEntity = entity;
-            }
-          }
-          if (minDist < 200) {
-            onAddAttribute(nearestEntity.id, pointerPos.x - 40, pointerPos.y - 20);
-            onCancelPendingAction();
-          }
-        } else if (pendingAction === 'relationship') {
-          onAddRelationship(pointerPos.x - 40, pointerPos.y - 40);
-          onCancelPendingAction();
-        }
+    if (!stage || e.target !== stage) return;
+    const pointer = stage.getPointerPosition();
+    if (!pointer) return;
+    const model = toModel(pointer);
+
+    if (pendingAction === 'entity') {
+      onAddEntity(snap(model.x - ENTITY_WIDTH / 2), snap(model.y - ENTITY_HEIGHT / 2));
+      onCancelPendingAction();
+    } else if (pendingAction === 'attribute') {
+      const nearest = nearestEntityTo(model);
+      if (nearest && nearest.dist < ATTRIBUTE_ATTACH_RADIUS) {
+        onAddAttribute(nearest.entity.id, snap(model.x), snap(model.y));
+        onCancelPendingAction();
       } else {
-        // Deselect if clicking on empty space
-        onDeselect();
+        onPlacementMiss();
       }
+    } else if (pendingAction === 'relationship') {
+      onAddRelationship(snap(model.x), snap(model.y));
+      onCancelPendingAction();
+    } else {
+      onDeselect();
     }
   };
 
-  const handleStageDoubleClick = (e: any) => {
+  const handleStageDoubleClick = (e: Konva.KonvaEventObject<MouseEvent | Event>) => {
+    if (spaceDown) return;
     const stage = e.target.getStage();
-    const pointerPos = stage.getPointerPosition();
-    
-    // If double-clicking on empty space (the stage itself) and no pending action
-    if (e.target === stage && !pendingAction) {
-      // Add entity at double-click location
-      onAddEntity(pointerPos.x - 60, pointerPos.y - 30);
-    }
+    if (!stage || e.target !== stage || pendingAction) return;
+    const pointer = stage.getPointerPosition();
+    if (!pointer) return;
+    const model = toModel(pointer);
+    onAddEntity(snap(model.x - ENTITY_WIDTH / 2), snap(model.y - ENTITY_HEIGHT / 2));
   };
+
+  // Visible model-space region for the dot grid
+  const gridRegion = {
+    left: -view.x / view.scale,
+    top: -view.y / view.scale,
+    right: (width - view.x) / view.scale,
+    bottom: (height - view.y) / view.scale,
+  };
+
+  const cursor = isPanning
+    ? 'grabbing'
+    : spaceDown
+      ? 'grab'
+      : pendingAction
+        ? 'crosshair'
+        : 'default';
 
   return (
     <Stage
       ref={stageRef}
       width={width}
       height={height}
+      scaleX={view.scale}
+      scaleY={view.scale}
+      x={view.x}
+      y={view.y}
       onClick={handleStageClick}
       onTap={handleStageClick}
       onDblClick={handleStageDoubleClick}
       onDblTap={handleStageDoubleClick}
-      style={{ cursor: 'default' }}
+      onWheel={handleWheel}
+      onMouseDown={handleMouseDown}
+      onMouseMove={handleMouseMove}
+      onMouseUp={handleMouseUp}
+      style={{ cursor, background: theme.canvasBg }}
     >
-      <Layer key={`canvas-layer-${version}`}>
-        {/* Render connection lines first (behind shapes) */}
+      <Layer name="grid-layer" listening={false}>
+        <Shape
+          sceneFunc={(ctx, shape) => {
+            const startX = Math.floor(gridRegion.left / GRID_SIZE) * GRID_SIZE;
+            const startY = Math.floor(gridRegion.top / GRID_SIZE) * GRID_SIZE;
+            ctx.beginPath();
+            for (let gx = startX; gx <= gridRegion.right; gx += GRID_SIZE) {
+              for (let gy = startY; gy <= gridRegion.bottom; gy += GRID_SIZE) {
+                ctx.moveTo(gx, gy);
+                ctx.arc(gx, gy, 1, 0, Math.PI * 2);
+              }
+            }
+            ctx.fillStyle = theme.gridDot;
+            ctx.fill();
+            ctx.fillStrokeShape(shape);
+          }}
+        />
+      </Layer>
+      <Layer listening={!spaceDown && !isPanning}>
+        {/* Connection lines behind shapes */}
         {diagram.attributes.map((attribute) => {
           const entity = diagram.entities.find((e) => e.id === attribute.entityId);
           if (!entity) return null;
           const { from, to } = getAttributeConnectionPoints(attribute, entity);
-          return <ConnectionLine key={`attr-line-${attribute.id}`} from={from} to={to} />;
+          const highlighted =
+            (selectedId === attribute.id && selectedType === 'attribute') ||
+            (selectedId === entity.id && selectedType === 'entity');
+          return (
+            <ConnectionLine
+              key={`attr-line-${attribute.id}`}
+              from={from}
+              to={to}
+              stroke={theme.connection}
+              highlighted={highlighted}
+              highlightColor={theme.accentSoft}
+            />
+          );
         })}
 
         {diagram.relationships.map((relationship) => {
-          // Track which entities we've processed to handle self-references
           const processedEntities = new Set<string>();
-          
+          const relSelected = selectedId === relationship.id && selectedType === 'relationship';
+
           return relationship.connectedEntities.map((entityId, index) => {
             const entity = diagram.entities.find((e) => e.id === entityId);
             if (!entity) return null;
-            
-            // Check if this is a self-referencing relationship (entity appears twice)
-            const count = relationship.connectedEntities.filter(id => id === entityId).length;
+
+            const count = relationship.connectedEntities.filter((id) => id === entityId).length;
             const isSelfReference = count === 2;
-            
-            // For self-references, only process on the first occurrence
-            if (isSelfReference && processedEntities.has(entityId)) {
-              return null;
-            }
-            
-            if (isSelfReference) {
-              processedEntities.add(entityId);
-              
-              // Get self-referencing connection points (two adjacent corners)
-              const connectionPoints = getSelfReferencingConnectionPoints(relationship, entity);
-              
-              return (
-                <React.Fragment key={`rel-self-${relationship.id}-${entityId}`}>
-                  {connectionPoints.map(({ diamondCorner, entityPoint }, connectionIndex) => {
-                    // Get cardinality for this connection (use _self_0 and _self_1 keys)
-                    const cardinalityKey = `${entityId}_self_${connectionIndex}`;
-                    const cardinality = relationship.cardinalities?.[cardinalityKey] || 
-                                      relationship.cardinalities?.[entityId] || 
-                                      '1';
-                    
-                    // Calculate label position (slightly offset from entity connection point)
-                    const dx = entityPoint.x - diamondCorner.x;
-                    const dy = entityPoint.y - diamondCorner.y;
-                    const distance = Math.sqrt(dx * dx + dy * dy);
-                    const offset = 15; // pixels from connection point
-                    const labelX = entityPoint.x - (dx / distance) * offset;
-                    const labelY = entityPoint.y - (dy / distance) * offset;
-                    
-                    return (
-                      <React.Fragment key={`rel-self-line-${relationship.id}-${entityId}-${connectionIndex}`}>
-                        <ConnectionLine
-                          from={entityPoint}
-                          to={diamondCorner}
-                        />
-                        <Text
-                          x={labelX}
-                          y={labelY}
-                          text={cardinality}
-                          fontSize={16}
-                          fontFamily="Arial"
-                          fill="#1e293b"
-                          align="center"
-                          verticalAlign="middle"
-                          offsetX={8}
-                          offsetY={8}
-                          listening={false}
-                        />
-                      </React.Fragment>
-                    );
-                  })}
-                </React.Fragment>
-              );
-            } else {
-              // Regular relationship connection
-              processedEntities.add(entityId);
-              
-              // Get connection points (closest diamond corner to closest entity point)
-              const { diamondCorner, entityPoint } = getRelationshipConnectionPoints(
-                relationship,
-                entity
-              );
-              
-              // Get cardinality for this connection
-              const cardinality = relationship.cardinalities?.[entityId] || '1';
-              
-              // Calculate label position (slightly offset from entity connection point)
+            if (processedEntities.has(entityId)) return null;
+            processedEntities.add(entityId);
+
+            const renderConnection = (
+              diamondCorner: Point,
+              entityPoint: Point,
+              cardinality: string,
+              key: string
+            ) => {
               const dx = entityPoint.x - diamondCorner.x;
               const dy = entityPoint.y - diamondCorner.y;
-              const distance = Math.sqrt(dx * dx + dy * dy);
-              const offset = 15; // pixels from connection point
+              const distance = Math.hypot(dx, dy) || 1;
+              const offset = 15;
               const labelX = entityPoint.x - (dx / distance) * offset;
               const labelY = entityPoint.y - (dy / distance) * offset;
-              
               return (
-                <React.Fragment key={`rel-line-${relationship.id}-${entityId}-${index}`}>
+                <React.Fragment key={key}>
                   <ConnectionLine
                     from={entityPoint}
                     to={diamondCorner}
+                    stroke={theme.connection}
+                    highlighted={relSelected}
+                    highlightColor={theme.accentSoft}
                   />
                   <Text
                     x={labelX}
                     y={labelY}
                     text={cardinality}
-                    fontSize={16}
-                    fontFamily="Arial"
-                    fill="#1e293b"
+                    fontSize={14}
+                    fontFamily="system-ui, -apple-system, sans-serif"
+                    fill={theme.cardinalityText}
                     align="center"
                     verticalAlign="middle"
                     offsetX={8}
@@ -260,165 +385,155 @@ export const Canvas = ({
                   />
                 </React.Fragment>
               );
+            };
+
+            if (isSelfReference) {
+              const connectionPoints = getSelfReferencingConnectionPoints(relationship, entity);
+              return (
+                <React.Fragment key={`rel-self-${relationship.id}-${entityId}`}>
+                  {connectionPoints.map(({ diamondCorner, entityPoint }, connectionIndex) => {
+                    const cardinality =
+                      relationship.cardinalities?.[`${entityId}_self_${connectionIndex}`] ||
+                      relationship.cardinalities?.[entityId] ||
+                      '1';
+                    return renderConnection(
+                      diamondCorner,
+                      entityPoint,
+                      cardinality,
+                      `rel-self-line-${relationship.id}-${entityId}-${connectionIndex}`
+                    );
+                  })}
+                </React.Fragment>
+              );
             }
+
+            const { diamondCorner, entityPoint } = getRelationshipConnectionPoints(relationship, entity);
+            const cardinality = relationship.cardinalities?.[entityId] || '1';
+            return renderConnection(
+              diamondCorner,
+              entityPoint,
+              cardinality,
+              `rel-line-${relationship.id}-${entityId}-${index}`
+            );
           });
         })}
 
-        {/* Render entities */}
-        {diagram.entities.map((entity) => {
-          // Helper function to find non-overlapping position for attribute
-          const findNonOverlappingPosition = (entity: import('../types/diagram').Entity): { x: number; y: number } => {
-            const ATTRIBUTE_WIDTH = 80;
-            const ATTRIBUTE_HEIGHT = 40;
-            const SPACING = 20; // Minimum spacing from entity edge
-            
-            // Try positions around the entity: top, right, bottom, left
-            const positions = [
-              // Top
-              { x: entity.x + entity.width / 2, y: entity.y - SPACING - ATTRIBUTE_HEIGHT / 2 },
-              // Right
-              { x: entity.x + entity.width + SPACING + ATTRIBUTE_WIDTH / 2, y: entity.y + entity.height / 2 },
-              // Bottom
-              { x: entity.x + entity.width / 2, y: entity.y + entity.height + SPACING + ATTRIBUTE_HEIGHT / 2 },
-              // Left
-              { x: entity.x - SPACING - ATTRIBUTE_WIDTH / 2, y: entity.y + entity.height / 2 },
-            ];
-            
-            // Check each position for overlaps
-            for (const pos of positions) {
-              const attrLeft = pos.x - ATTRIBUTE_WIDTH / 2;
-              const attrRight = pos.x + ATTRIBUTE_WIDTH / 2;
-              const attrTop = pos.y - ATTRIBUTE_HEIGHT / 2;
-              const attrBottom = pos.y + ATTRIBUTE_HEIGHT / 2;
-              
-              // Check overlap with entity
-              const overlapsEntity = !(
-                attrRight < entity.x ||
-                attrLeft > entity.x + entity.width ||
-                attrBottom < entity.y ||
-                attrTop > entity.y + entity.height
-              );
-              
-              if (overlapsEntity) continue;
-              
-              // Check overlap with other attributes of this entity
-              let overlapsAttribute = false;
-              for (const attr of diagram.attributes) {
-                if (attr.entityId === entity.id) {
-                  const otherAttrLeft = attr.x - ATTRIBUTE_WIDTH / 2;
-                  const otherAttrRight = attr.x + ATTRIBUTE_WIDTH / 2;
-                  const otherAttrTop = attr.y - ATTRIBUTE_HEIGHT / 2;
-                  const otherAttrBottom = attr.y + ATTRIBUTE_HEIGHT / 2;
-                  
-                  const overlaps = !(
-                    attrRight < otherAttrLeft ||
-                    attrLeft > otherAttrRight ||
-                    attrBottom < otherAttrTop ||
-                    attrTop > otherAttrBottom
-                  );
-                  
-                  if (overlaps) {
-                    overlapsAttribute = true;
-                    break;
-                  }
-                }
-              }
-              
-              if (!overlapsAttribute) {
-                return pos;
-              }
-            }
-            
-            // If all positions overlap, default to top position
-            return positions[0];
-          };
-
-          return (
-            <Entity
-              key={entity.id}
-              entity={entity}
-              isSelected={selectedId === entity.id && selectedType === 'entity'}
-              onSelect={() => {
-                // If adding attribute and clicking on entity, auto-place attribute
-                if (pendingAction === 'attribute') {
-                  const position = findNonOverlappingPosition(entity);
-                  onAddAttribute(entity.id, position.x, position.y);
-                  onCancelPendingAction();
-                } else if (selectedType === 'relationship' && selectedId) {
-                  // If a relationship is selected, connect it to this entity
+        {/* Entities */}
+        {diagram.entities.map((entity) => (
+          <Entity
+            key={entity.id}
+            entity={entity}
+            theme={theme}
+            isSelected={selectedId === entity.id && selectedType === 'entity'}
+            isConnectTarget={attachTarget?.id === entity.id}
+            onSelect={() => {
+              if (spaceDown || isPanning) return;
+              if (pendingAction === 'attribute') {
+                const position = findNonOverlappingPosition(entity, diagram);
+                onAddAttribute(entity.id, snap(position.x), snap(position.y));
+                onCancelPendingAction();
+              } else if (selectedType === 'relationship' && selectedId) {
+                const selectedRelationship = diagram.relationships.find((r) => r.id === selectedId);
+                if (selectedRelationship && selectedRelationship.connectedEntities.length < 2) {
                   onConnectRelationshipToEntity(selectedId, entity.id);
                 } else {
-                  onSelectItem(entity.id, 'entity', false);
+                  // Relationship already complete: treat the click as a normal selection
+                  onSelectItem(entity.id, 'entity');
                 }
-              }}
-            onDoubleClick={() => {
-              onSelectItem(entity.id, 'entity', true);
+              } else {
+                onSelectItem(entity.id, 'entity');
+              }
             }}
             onDragEnd={(e) => {
-              const newX = e.target.x();
-              const newY = e.target.y();
-              const deltaX = newX - entity.x;
-              const deltaY = newY - entity.y;
-              
-              // Update entity position
-              onUpdateEntity(entity.id, {
-                x: newX,
-                y: newY,
-              });
-              
-              // Move all attributes of this entity by the same delta
-              diagram.attributes
-                .filter((attr) => attr.entityId === entity.id)
-                .forEach((attr) => {
-                  onUpdateAttribute(attr.id, {
-                    x: attr.x + deltaX,
-                    y: attr.y + deltaY,
-                  });
-                });
+              onMoveEntity(entity.id, snap(e.target.x()), snap(e.target.y()));
             }}
-            onUpdate={(updates) => onUpdateEntity(entity.id, updates)}
-            onDelete={() => onDeleteEntity(entity.id)}
-            />
-          );
-        })}
+          />
+        ))}
 
-        {/* Render attributes */}
+        {/* Attributes */}
         {diagram.attributes.map((attribute) => (
           <Attribute
             key={attribute.id}
             attribute={attribute}
+            theme={theme}
             isSelected={selectedId === attribute.id && selectedType === 'attribute'}
-            onSelect={() => onSelectItem(attribute.id, 'attribute', false)}
-            onDoubleClick={() => onSelectItem(attribute.id, 'attribute', true)}
-            onDragEnd={(e) => {
-              onUpdateAttribute(attribute.id, {
-                x: e.target.x(),
-                y: e.target.y(),
-              });
+            onSelect={() => {
+              if (spaceDown || isPanning) return;
+              onSelectItem(attribute.id, 'attribute');
             }}
-            onUpdate={(updates) => onUpdateAttribute(attribute.id, updates)}
-            onDelete={() => onDeleteAttribute(attribute.id)}
+            onDragEnd={(e) => {
+              onMoveAttribute(attribute.id, snap(e.target.x()), snap(e.target.y()));
+            }}
           />
         ))}
 
-        {/* Render relationships */}
+        {/* Relationships */}
         {diagram.relationships.map((relationship) => (
           <Relationship
             key={relationship.id}
             relationship={relationship}
+            theme={theme}
             isSelected={selectedId === relationship.id && selectedType === 'relationship'}
-            onSelect={() => onSelectItem(relationship.id, 'relationship', false)}
-            onDoubleClick={() => onSelectItem(relationship.id, 'relationship', true)}
-            onDragEnd={(e) => {
-              onUpdateRelationship(relationship.id, {
-                x: e.target.x(),
-                y: e.target.y(),
-              });
+            onSelect={() => {
+              if (spaceDown || isPanning) return;
+              onSelectItem(relationship.id, 'relationship');
             }}
-            onUpdate={(updates) => onUpdateRelationship(relationship.id, updates)}
-            onDelete={() => onDeleteRelationship(relationship.id)}
+            onDragEnd={(e) => {
+              onMoveRelationship(relationship.id, snap(e.target.x()), snap(e.target.y()));
+            }}
           />
         ))}
+
+        {/* Ghost preview while placing */}
+        {pendingAction && ghostPos && (
+          <>
+            {pendingAction === 'entity' && (
+              <Rect
+                x={snap(ghostPos.x - ENTITY_WIDTH / 2)}
+                y={snap(ghostPos.y - ENTITY_HEIGHT / 2)}
+                width={ENTITY_WIDTH}
+                height={ENTITY_HEIGHT}
+                stroke={theme.ghost}
+                strokeWidth={1.5}
+                dash={[6, 4]}
+                cornerRadius={6}
+                opacity={0.6}
+                listening={false}
+              />
+            )}
+            {pendingAction === 'attribute' && (
+              <Ellipse
+                x={snap(ghostPos.x)}
+                y={snap(ghostPos.y)}
+                radiusX={ATTRIBUTE_WIDTH / 2}
+                radiusY={ATTRIBUTE_HEIGHT / 2}
+                stroke={attachTarget ? theme.ghost : theme.connection}
+                strokeWidth={1.5}
+                dash={[6, 4]}
+                opacity={0.6}
+                listening={false}
+              />
+            )}
+            {pendingAction === 'relationship' && (
+              <Line
+                x={snap(ghostPos.x)}
+                y={snap(ghostPos.y)}
+                points={[
+                  0, -RELATIONSHIP_SIZE / 2,
+                  RELATIONSHIP_SIZE / 2, 0,
+                  0, RELATIONSHIP_SIZE / 2,
+                  -RELATIONSHIP_SIZE / 2, 0,
+                ]}
+                closed
+                stroke={theme.ghost}
+                strokeWidth={1.5}
+                dash={[6, 4]}
+                opacity={0.6}
+                listening={false}
+              />
+            )}
+          </>
+        )}
       </Layer>
     </Stage>
   );

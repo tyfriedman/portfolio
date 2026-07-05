@@ -1,146 +1,80 @@
 'use client';
 
 import { Line, Text, Group } from 'react-konva';
+import { useState } from 'react';
+import Konva from 'konva';
 import { Relationship as RelationshipType } from '../types/diagram';
-import { useState, useRef, useEffect, useMemo } from 'react';
+import { CanvasTheme } from '../theme';
+import { RELATIONSHIP_SIZE } from '../lib/geometry';
 
 interface RelationshipProps {
   relationship: RelationshipType;
+  theme: CanvasTheme;
   isSelected: boolean;
   onSelect: () => void;
-  onDoubleClick?: () => void;
-  onDragEnd: (e: any) => void;
-  onUpdate: (updates: Partial<RelationshipType>) => void;
-  onDelete: () => void;
+  onDragEnd: (e: Konva.KonvaEventObject<DragEvent>) => void;
 }
 
-const RELATIONSHIP_SIZE = 80;
+const halfSize = RELATIONSHIP_SIZE / 2;
+const diamondPoints = [0, -halfSize, halfSize, 0, 0, halfSize, -halfSize, 0, 0, -halfSize];
 
 export const Relationship = ({
   relationship,
+  theme,
   isSelected,
   onSelect,
-  onDoubleClick,
   onDragEnd,
-  onUpdate,
-  onDelete,
 }: RelationshipProps) => {
-  const [isEditing, setIsEditing] = useState(relationship.isNew || false);
-  const [editText, setEditText] = useState(relationship.label);
-  const textRef = useRef<any>(null);
+  const [hovered, setHovered] = useState(false);
 
-  // Sync editText with relationship.label when it changes externally (e.g., from sidebar)
-  useEffect(() => {
-    if (!isEditing) {
-      setEditText(relationship.label);
-    }
-  }, [relationship.label, isEditing]);
+  const stroke = isSelected ? theme.accent : hovered ? theme.accentSoft : theme.shapeStroke;
 
-  // Focus text input when editing starts
-  useEffect(() => {
-    if (isEditing && textRef.current) {
-      setTimeout(() => {
-        textRef.current?.focus();
-      }, 0);
-    }
-  }, [isEditing]);
-
-  const handleDoubleClick = () => {
-    if (onDoubleClick) {
-      onDoubleClick();
-    } else {
-      setIsEditing(true);
-      setEditText(relationship.label);
-    }
+  const handleMouseEnter = (e: Konva.KonvaEventObject<MouseEvent>) => {
+    setHovered(true);
+    const container = e.target.getStage()?.container();
+    if (container) container.style.cursor = 'pointer';
   };
 
-  const handleTextChange = (e: any) => {
-    setEditText(e.target.value());
+  const handleMouseLeave = (e: Konva.KonvaEventObject<MouseEvent>) => {
+    setHovered(false);
+    const container = e.target.getStage()?.container();
+    if (container) container.style.cursor = '';
   };
-
-  const handleTextBlur = () => {
-    setIsEditing(false);
-    onUpdate({ label: editText || 'Relationship', isNew: false });
-  };
-
-  const handleKeyDown = (e: any) => {
-    if (e.key === 'Enter') {
-      e.target.blur();
-    } else if (e.key === 'Escape') {
-      setEditText(relationship.label);
-      setIsEditing(false);
-    }
-  };
-
-  // Diamond shape: top, right, bottom, left points
-  const halfSize = RELATIONSHIP_SIZE / 2;
-  const diamondPoints = [
-    0, -halfSize,      // top
-    halfSize, 0,       // right
-    0, halfSize,       // bottom
-    -halfSize, 0,      // left
-    0, -halfSize,      // close the shape
-  ];
-
-  // Force Text component to remount when label changes
-  const textComponent = useMemo(() => (
-    <Text
-      key={`relationship-label-${relationship.id}-${relationship.label}`}
-      x={-RELATIONSHIP_SIZE / 2 + 5}
-      y={-10}
-      width={RELATIONSHIP_SIZE - 10}
-      height={20}
-      text={relationship.label}
-      fontSize={12}
-      fontFamily="Arial"
-      fill="#1e293b"
-      align="center"
-      verticalAlign="middle"
-    />
-  ), [relationship.id, relationship.label]);
 
   return (
     <Group
-      key={`relationship-group-${relationship.id}-${relationship.label}`}
       x={relationship.x}
       y={relationship.y}
       draggable
       onDragEnd={onDragEnd}
       onClick={onSelect}
       onTap={onSelect}
-      onDblClick={handleDoubleClick}
-      onDblTap={handleDoubleClick}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
     >
       <Line
         points={diamondPoints}
-        fill="#ffffff"
+        fill={theme.shapeFill}
         closed
-        stroke={isSelected ? "#3b82f6" : "#1e293b"}
-        strokeWidth={isSelected ? 3 : 1.5}
-        shadowBlur={isSelected ? 5 : 0}
-        shadowColor="#3b82f6"
+        stroke={stroke}
+        strokeWidth={isSelected ? 2.5 : 1.5}
+        shadowBlur={isSelected ? 12 : hovered ? 8 : 0}
+        shadowColor={theme.accent}
+        shadowOpacity={0.5}
       />
-      {isEditing ? (
-        <Text
-          ref={textRef}
-          x={-RELATIONSHIP_SIZE / 2 + 5}
-          y={-10}
-          width={RELATIONSHIP_SIZE - 10}
-          height={20}
-          text={editText}
-          fontSize={12}
-          fontFamily="Arial"
-          fill="#1e293b"
-          align="center"
-          verticalAlign="middle"
-          editable
-          onTextChange={handleTextChange}
-          onBlur={handleTextBlur}
-          onKeyDown={handleKeyDown}
-        />
-      ) : (
-        textComponent
-      )}
+      <Text
+        x={-RELATIONSHIP_SIZE / 2 + 5}
+        y={-RELATIONSHIP_SIZE / 2}
+        width={RELATIONSHIP_SIZE - 10}
+        height={RELATIONSHIP_SIZE}
+        text={relationship.label}
+        fontSize={12}
+        fontFamily="system-ui, -apple-system, sans-serif"
+        fill={theme.shapeText}
+        align="center"
+        verticalAlign="middle"
+        listening={false}
+      />
     </Group>
   );
 };

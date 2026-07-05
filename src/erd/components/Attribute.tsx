@@ -1,137 +1,93 @@
 'use client';
 
 import { Ellipse, Text, Group } from 'react-konva';
+import { useState } from 'react';
+import Konva from 'konva';
 import { Attribute as AttributeType } from '../types/diagram';
-import { useState, useRef, useEffect, useMemo } from 'react';
+import { CanvasTheme } from '../theme';
+import { ATTRIBUTE_WIDTH, ATTRIBUTE_HEIGHT } from '../lib/geometry';
 
 interface AttributeProps {
   attribute: AttributeType;
+  theme: CanvasTheme;
   isSelected: boolean;
   onSelect: () => void;
-  onDoubleClick?: () => void;
-  onDragEnd: (e: any) => void;
-  onUpdate: (updates: Partial<AttributeType>) => void;
-  onDelete: () => void;
+  onDragEnd: (e: Konva.KonvaEventObject<DragEvent>) => void;
 }
-
-const ATTRIBUTE_WIDTH = 80;
-const ATTRIBUTE_HEIGHT = 40;
 
 export const Attribute = ({
   attribute,
+  theme,
   isSelected,
   onSelect,
-  onDoubleClick,
   onDragEnd,
-  onUpdate,
-  onDelete,
 }: AttributeProps) => {
-  const [isEditing, setIsEditing] = useState(attribute.isNew || false);
-  const [editText, setEditText] = useState(attribute.label);
-  const textRef = useRef<any>(null);
+  const [hovered, setHovered] = useState(false);
 
-  // Sync editText with attribute.label when it changes externally (e.g., from sidebar)
-  useEffect(() => {
-    if (!isEditing) {
-      setEditText(attribute.label);
-    }
-  }, [attribute.label, isEditing]);
+  const stroke = isSelected ? theme.accent : hovered ? theme.accentSoft : theme.shapeStroke;
+  const dash = attribute.isDerived ? [4, 4] : undefined;
+  const fontStyle = attribute.isDerived ? 'italic' : 'normal';
 
-  // Focus text input when editing starts
-  useEffect(() => {
-    if (isEditing && textRef.current) {
-      setTimeout(() => {
-        textRef.current?.focus();
-      }, 0);
-    }
-  }, [isEditing]);
-
-  const handleDoubleClick = () => {
-    if (onDoubleClick) {
-      onDoubleClick();
-    } else {
-      setIsEditing(true);
-      setEditText(attribute.label);
-    }
+  const handleMouseEnter = (e: Konva.KonvaEventObject<MouseEvent>) => {
+    setHovered(true);
+    const container = e.target.getStage()?.container();
+    if (container) container.style.cursor = 'pointer';
   };
 
-  const handleTextChange = (e: any) => {
-    setEditText(e.target.value());
+  const handleMouseLeave = (e: Konva.KonvaEventObject<MouseEvent>) => {
+    setHovered(false);
+    const container = e.target.getStage()?.container();
+    if (container) container.style.cursor = '';
   };
-
-  const handleTextBlur = () => {
-    setIsEditing(false);
-    onUpdate({ label: editText || 'Attribute', isNew: false });
-  };
-
-  const handleKeyDown = (e: any) => {
-    if (e.key === 'Enter') {
-      e.target.blur();
-    } else if (e.key === 'Escape') {
-      setEditText(attribute.label);
-      setIsEditing(false);
-    }
-  };
-
-  // Force Text component to remount when label changes
-  const textComponent = useMemo(() => (
-    <Text
-      key={`attribute-label-${attribute.id}-${attribute.label}`}
-      x={-ATTRIBUTE_WIDTH / 2 + 5}
-      y={-10}
-      width={ATTRIBUTE_WIDTH - 10}
-      height={20}
-      text={attribute.label}
-      fontSize={12}
-      fontFamily="Arial"
-      fill="#1e293b"
-      align="center"
-      verticalAlign="middle"
-    />
-  ), [attribute.id, attribute.label]);
 
   return (
     <Group
-      key={`attribute-group-${attribute.id}-${attribute.label}`}
       x={attribute.x}
       y={attribute.y}
       draggable
       onDragEnd={onDragEnd}
       onClick={onSelect}
       onTap={onSelect}
-      onDblClick={handleDoubleClick}
-      onDblTap={handleDoubleClick}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
     >
       <Ellipse
         radiusX={ATTRIBUTE_WIDTH / 2}
         radiusY={ATTRIBUTE_HEIGHT / 2}
-        fill="#ffffff"
-        stroke={isSelected ? "#3b82f6" : "#1e293b"}
-        strokeWidth={isSelected ? 3 : 1.5}
-        shadowBlur={isSelected ? 5 : 0}
-        shadowColor="#3b82f6"
+        fill={theme.shapeFill}
+        stroke={stroke}
+        strokeWidth={isSelected ? 2.5 : 1.5}
+        dash={dash}
+        shadowBlur={isSelected ? 12 : hovered ? 8 : 0}
+        shadowColor={theme.accent}
+        shadowOpacity={0.5}
       />
-      {isEditing ? (
-        <Text
-          ref={textRef}
-          x={-ATTRIBUTE_WIDTH / 2 + 5}
-          y={-10}
-          width={ATTRIBUTE_WIDTH - 10}
-          height={20}
-          text={editText}
-          fontSize={12}
-          fontFamily="Arial"
-          fill="#1e293b"
-          align="center"
-          verticalAlign="middle"
-          editable
-          onTextChange={handleTextChange}
-          onBlur={handleTextBlur}
-          onKeyDown={handleKeyDown}
+      {attribute.isMultivalued && (
+        <Ellipse
+          radiusX={ATTRIBUTE_WIDTH / 2 - 5}
+          radiusY={ATTRIBUTE_HEIGHT / 2 - 5}
+          fill="transparent"
+          stroke={stroke}
+          strokeWidth={1.5}
+          dash={dash}
+          listening={false}
         />
-      ) : (
-        textComponent
       )}
+      <Text
+        x={-ATTRIBUTE_WIDTH / 2 + 5}
+        y={-ATTRIBUTE_HEIGHT / 2}
+        width={ATTRIBUTE_WIDTH - 10}
+        height={ATTRIBUTE_HEIGHT}
+        text={attribute.label}
+        fontSize={12}
+        fontStyle={fontStyle}
+        fontFamily="system-ui, -apple-system, sans-serif"
+        fill={theme.shapeText}
+        textDecoration={attribute.isPrimaryKey ? 'underline' : ''}
+        align="center"
+        verticalAlign="middle"
+        listening={false}
+      />
     </Group>
   );
 };
