@@ -40,6 +40,29 @@ function formatDayInMonth(iso: string): string {
   return `${m}/${d}`;
 }
 
+/** The seeded gray used for fixed categories (rent, utilities, etc.) */
+const FIXED_COLOR = "#d9d9d9";
+
+const YELLOW_THRESHOLD = 50;
+
+/**
+ * Color for an actual-spent amount vs its budget:
+ * - over budget: red (all categories)
+ * - fixed (gray) categories: no highlight otherwise
+ * - others: yellow within $50 of budget, green below that
+ */
+function actualStatusClass(
+  actual: number,
+  budget: number,
+  color: string | null
+): string {
+  if (actual > budget) return "font-semibold text-red-600";
+  const isFixed = !color || color.toLowerCase() === FIXED_COLOR;
+  if (isFixed) return "";
+  if (budget - actual <= YELLOW_THRESHOLD) return "font-medium text-amber-500";
+  return "font-medium text-green-600";
+}
+
 function defaultTransactionDate(month: string): string {
   const { min, max } = monthDateBounds(month);
   const now = new Date();
@@ -389,7 +412,6 @@ export function MonthPageClient({
               <div className="divide-y divide-gray-100">
                 {expenseItems.map((item) => {
                   const actual = actualsByCategory.get(item.id) ?? 0;
-                  const over = actual > item.amount;
                   return (
                     <div
                       key={item.id}
@@ -414,9 +436,11 @@ export function MonthPageClient({
                           />
                         </span>
                         <span
-                          className={`w-20 text-right tabular-nums ${
-                            over ? "font-semibold text-red-600" : ""
-                          }`}
+                          className={`w-20 text-right tabular-nums ${actualStatusClass(
+                            actual,
+                            item.amount,
+                            item.color
+                          )}`}
                         >
                           {formatCurrency(actual)}
                         </span>
@@ -432,11 +456,11 @@ export function MonthPageClient({
                     {formatCurrency(expenseBudgetTotal)}
                   </span>
                   <span
-                    className={`w-20 text-right ${
-                      expenseActualTotal > expenseBudgetTotal
-                        ? "text-red-600"
-                        : ""
-                    }`}
+                    className={`w-20 text-right ${actualStatusClass(
+                      expenseActualTotal,
+                      expenseBudgetTotal,
+                      "#000000"
+                    )}`}
                   >
                     {formatCurrency(expenseActualTotal)}
                   </span>
