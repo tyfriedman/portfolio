@@ -68,8 +68,9 @@ export function SpendingPieChart({ slices }: SpendingPieChartProps) {
     });
 
   return (
-    <div className="flex flex-wrap items-center justify-center gap-4 p-3">
+    <div className="flex items-start justify-center gap-8 p-3">
       <svg
+        className="shrink-0"
         width={size}
         height={size}
         viewBox={`0 0 ${size} ${size}`}
@@ -78,7 +79,7 @@ export function SpendingPieChart({ slices }: SpendingPieChartProps) {
       >
         {paths}
       </svg>
-      <ul className="text-xs">
+      <ul className="min-w-0 flex-1 text-xs">
         {slices
           .filter((s) => s.value > 0)
           .sort((a, b) => b.value - a.value)

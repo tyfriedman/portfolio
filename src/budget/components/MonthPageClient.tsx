@@ -292,7 +292,7 @@ export function MonthPageClient({
 
         <div className="grid grid-cols-1 gap-x-12 gap-y-10 lg:grid-cols-[1.15fr_1fr_1fr]">
           {/* Column 1: Transactions */}
-          <section>
+          <section className="lg:row-span-2">
             <h2 className={sectionHeading}>Transactions</h2>
 
             {/* Add form */}
@@ -409,80 +409,73 @@ export function MonthPageClient({
             )}
           </section>
 
-          {/* Column 2: Expenses + pie */}
-          <div className="flex flex-col gap-10">
-            <section>
-              <div className="flex items-center justify-between">
-                <h2 className={sectionHeading}>Expenses</h2>
-                <div className="mb-1 flex gap-4">
-                  <span className={`${colLabel} w-20`}>Budget</span>
-                  <span className={`${colLabel} w-20`}>Actual</span>
-                </div>
+          {/* Column 2: Expenses */}
+          <section>
+            <div className="flex items-center justify-between">
+              <h2 className={sectionHeading}>Expenses</h2>
+              <div className="mb-1 flex gap-4">
+                <span className={`${colLabel} w-20`}>Budget</span>
+                <span className={`${colLabel} w-20`}>Actual</span>
               </div>
-              <div className="divide-y divide-gray-100 dark:divide-gray-800">
-                {expenseItems.map((item) => {
-                  const actual = actualsByCategory.get(item.id) ?? 0;
-                  return (
-                    <div
-                      key={item.id}
-                      className="flex items-center justify-between gap-2 py-[3px] text-sm"
-                    >
-                      <span className="flex min-w-0 items-center gap-2">
-                        <span
-                          className="h-2.5 w-2.5 shrink-0 rounded-full"
-                          style={{
-                            backgroundColor: item.color ?? FALLBACK_COLOR,
-                          }}
-                        />
-                        <span className="truncate">{item.name}</span>
-                      </span>
-                      <span className="flex shrink-0 gap-4">
-                        <span className="w-20 text-right">
-                          <EditableAmount
-                            value={item.amount}
-                            onCommit={(amount) =>
-                              patchMonthItem(item.id, { amount })
-                            }
-                          />
-                        </span>
-                        <span
-                          className={`w-20 text-right tabular-nums ${actualStatusClass(
-                            actual,
-                            item.amount,
-                            item.color
-                          )}`}
-                        >
-                          {formatCurrency(actual)}
-                        </span>
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-              <div className="mt-1 flex items-center justify-between border-t border-gray-200 dark:border-gray-700 pt-1.5 text-sm font-semibold">
-                <span>Total</span>
-                <span className="flex gap-4 tabular-nums">
-                  <span className="w-20 text-right">
-                    {formatCurrency(expenseBudgetTotal)}
-                  </span>
-                  <span
-                    className={`w-20 text-right ${actualStatusClass(
-                      expenseActualTotal,
-                      expenseBudgetTotal,
-                      "#000000"
-                    )}`}
+            </div>
+            <div className="divide-y divide-gray-100 dark:divide-gray-800">
+              {expenseItems.map((item) => {
+                const actual = actualsByCategory.get(item.id) ?? 0;
+                return (
+                  <div
+                    key={item.id}
+                    className="flex items-center justify-between gap-2 py-[3px] text-sm"
                   >
-                    {formatCurrency(expenseActualTotal)}
-                  </span>
+                    <span className="flex min-w-0 items-center gap-2">
+                      <span
+                        className="h-2.5 w-2.5 shrink-0 rounded-full"
+                        style={{
+                          backgroundColor: item.color ?? FALLBACK_COLOR,
+                        }}
+                      />
+                      <span className="truncate">{item.name}</span>
+                    </span>
+                    <span className="flex shrink-0 gap-4">
+                      <span className="w-20 text-right">
+                        <EditableAmount
+                          value={item.amount}
+                          onCommit={(amount) =>
+                            patchMonthItem(item.id, { amount })
+                          }
+                        />
+                      </span>
+                      <span
+                        className={`w-20 text-right tabular-nums ${actualStatusClass(
+                          actual,
+                          item.amount,
+                          item.color
+                        )}`}
+                      >
+                        {formatCurrency(actual)}
+                      </span>
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="mt-1 flex items-center justify-between border-t border-gray-200 dark:border-gray-700 pt-1.5 text-sm font-semibold">
+              <span>Total</span>
+              <span className="flex gap-4 tabular-nums">
+                <span className="w-20 text-right">
+                  {formatCurrency(expenseBudgetTotal)}
                 </span>
-              </div>
-            </section>
-
-            <section>
-              <h2 className={sectionHeading}>Spending Breakdown</h2>
-              <SpendingPieChart slices={pieSlices} />
-            </section>
-          </div>
+                <span
+                  className={`w-20 text-right ${actualStatusClass(
+                    expenseActualTotal,
+                    expenseBudgetTotal,
+                    "#000000"
+                  )}`}
+                >
+                  {formatCurrency(expenseActualTotal)}
+                </span>
+              </span>
+            </div>
+          </section>
 
           {/* Column 3: Income + Accounts */}
           <div className="flex flex-col gap-10">
@@ -618,6 +611,12 @@ export function MonthPageClient({
               </div>
             </section>
           </div>
+
+          {/* Spending breakdown — spans expenses + income/accounts columns */}
+          <section className="lg:col-span-2">
+            <h2 className={sectionHeading}>Spending Breakdown</h2>
+            <SpendingPieChart slices={pieSlices} />
+          </section>
         </div>
       </div>
       </div>
