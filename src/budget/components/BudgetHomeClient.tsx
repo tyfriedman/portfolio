@@ -8,6 +8,13 @@ import type { BudgetMonth } from "@/budget/lib/db/months";
 import { EditableAmount } from "@/budget/components/EditableAmount";
 import { EditableText } from "@/budget/components/EditableText";
 import { DatePicker, MonthPicker } from "@/budget/components/DatePicker";
+import { ThemeToggle, useDarkMode } from "@/budget/components/ThemeToggle";
+import {
+  ConfirmDialog,
+  Toasts,
+  useToasts,
+  type ConfirmOptions,
+} from "@/budget/components/Dialog";
 import {
   formatCurrency,
   formatPercent,
@@ -62,7 +69,7 @@ function EditablePercent({
           if (e.key === "Escape") setEditing(false);
         }}
         onFocus={(e) => e.target.select()}
-        className="w-14 rounded border border-blue-400 bg-white px-1 py-0.5 text-right text-sm outline-none"
+        className="w-14 rounded border border-blue-400 bg-white px-1 py-0.5 text-right text-sm outline-none dark:border-blue-500 dark:bg-gray-900"
       />
     );
   }
@@ -74,11 +81,11 @@ function EditablePercent({
         setDraft(value === null ? "" : String(value));
         setEditing(true);
       }}
-      className="cursor-text rounded px-1 py-0.5 text-right text-sm tabular-nums hover:bg-black/5"
+      className="cursor-text rounded px-1 py-0.5 text-right text-sm tabular-nums hover:bg-black/5 dark:hover:bg-white/10"
       title="Click to edit"
     >
       {value === null ? (
-        <span className="text-gray-400">—</span>
+        <span className="text-gray-400 dark:text-gray-500">—</span>
       ) : (
         `${value.toFixed(2)}%`
       )}
@@ -95,6 +102,9 @@ export function BudgetHomeClient({
   const [accounts, setAccounts] = useState<BudgetAccount[]>(initialAccounts);
   const [months, setMonths] = useState<BudgetMonth[]>(initialMonths);
   const [monthInput, setMonthInput] = useState(currentMonthSlug());
+  const { dark, toggle: toggleDark } = useDarkMode();
+  const { toasts, showToast } = useToasts();
+  const [confirm, setConfirm] = useState<ConfirmOptions | null>(null);
   const [savingMonth, setSavingMonth] = useState(false);
   const [addingAccount, setAddingAccount] = useState(false);
   const [newAccount, setNewAccount] = useState({
@@ -159,7 +169,7 @@ export function BudgetHomeClient({
     } catch (err) {
       console.error("Failed to update item", err);
       setItems(prev);
-      alert("Failed to save change.");
+      showToast("Couldn't save that change.");
     }
   }
 
@@ -186,7 +196,7 @@ export function BudgetHomeClient({
       setItems((cur) => [...cur, item]);
     } catch (err) {
       console.error("Failed to add item", err);
-      alert("Failed to add item.");
+      showToast("Couldn't add the row.");
     }
   }
 
@@ -201,7 +211,7 @@ export function BudgetHomeClient({
     } catch (err) {
       console.error("Failed to delete item", err);
       setItems(prev);
-      alert("Failed to delete item.");
+      showToast("Couldn't delete the row.");
     }
   }
 
@@ -222,14 +232,14 @@ export function BudgetHomeClient({
     } catch (err) {
       console.error("Failed to update account", err);
       setAccounts(prev);
-      alert("Failed to save change.");
+      showToast("Couldn't save that change.");
     }
   }
 
   async function submitNewAccount() {
     const balance = Number(newAccount.balance.replace(/[$,\s]/g, ""));
     if (!newAccount.name.trim() || !Number.isFinite(balance)) {
-      alert("Enter a name and a valid balance.");
+      showToast("Enter a name and a valid balance.");
       return;
     }
     const sortOrder =
@@ -266,12 +276,22 @@ export function BudgetHomeClient({
       });
     } catch (err) {
       console.error("Failed to add account", err);
-      alert("Failed to add account.");
+      showToast("Couldn't add the account.");
     }
   }
 
-  async function removeAccount(id: string) {
-    if (!confirm("Delete this account?")) return;
+  function removeAccount(id: string) {
+    const account = accounts.find((a) => a.id === id);
+    setConfirm({
+      title: "Delete account?",
+      message: `${account?.name ?? "This account"} will be removed from the budget. Saved months keep their own copies.`,
+      confirmLabel: "Delete",
+      danger: true,
+      action: () => doRemoveAccount(id),
+    });
+  }
+
+  async function doRemoveAccount(id: string) {
     const prev = accounts;
     setAccounts((cur) => cur.filter((a) => a.id !== id));
     try {
@@ -282,23 +302,29 @@ export function BudgetHomeClient({
     } catch (err) {
       console.error("Failed to delete account", err);
       setAccounts(prev);
-      alert("Failed to delete account.");
+      showToast("Couldn't delete the account.");
     }
   }
 
   // ----- months -----
 
-  async function saveToMonth() {
+  function saveToMonth() {
     const month = slugToMonth(monthInput);
     const exists = months.some((m) => m.month === month);
-    if (
-      exists &&
-      !confirm(
-        `${formatMonthLabel(month)} already exists. Update its budget amounts and account starting balances from the current budget? Transactions are kept.`
-      )
-    ) {
+    if (exists) {
+      setConfirm({
+        title: `Update ${formatMonthLabel(month)}?`,
+        message:
+          "This month already has a saved budget. Its budget amounts and account starting balances will be updated from the current budget. Transactions are kept.",
+        confirmLabel: "Update month",
+        action: () => doSaveToMonth(month),
+      });
       return;
     }
+    doSaveToMonth(month);
+  }
+
+  async function doSaveToMonth(month: string) {
     setSavingMonth(true);
     try {
       const res = await fetch("/api/budget/months", {
@@ -314,20 +340,24 @@ export function BudgetHomeClient({
       });
     } catch (err) {
       console.error("Failed to save month", err);
-      alert("Failed to save budget to month.");
+      showToast("Couldn't save budget to month.");
     } finally {
       setSavingMonth(false);
     }
   }
 
-  async function removeMonth(id: string, month: string) {
-    if (
-      !confirm(
-        `Delete ${formatMonthLabel(month)}? This removes its budget snapshot and all its transactions.`
-      )
-    ) {
-      return;
-    }
+  function removeMonth(id: string, month: string) {
+    setConfirm({
+      title: `Delete ${formatMonthLabel(month)}?`,
+      message:
+        "This removes the month's budget snapshot and all of its transactions. This can't be undone.",
+      confirmLabel: "Delete month",
+      danger: true,
+      action: () => doRemoveMonth(id),
+    });
+  }
+
+  async function doRemoveMonth(id: string) {
     const prev = months;
     setMonths((cur) => cur.filter((m) => m.id !== id));
     try {
@@ -338,14 +368,14 @@ export function BudgetHomeClient({
     } catch (err) {
       console.error("Failed to delete month", err);
       setMonths(prev);
-      alert("Failed to delete month.");
+      showToast("Couldn't delete the month.");
     }
   }
 
   // ----- render helpers -----
 
   const sectionHeading =
-    "mb-1 text-xs font-semibold uppercase tracking-wider text-gray-400";
+    "mb-1 text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500";
 
   function itemRow(item: BudgetItem, showColor: boolean) {
     return (
@@ -373,7 +403,7 @@ export function BudgetHomeClient({
           <button
             type="button"
             onClick={() => removeItem(item.id)}
-            className="invisible w-4 text-gray-300 hover:text-red-500 group-hover:visible"
+            className="invisible w-4 text-gray-300 hover:text-red-500 dark:text-gray-600 dark:hover:text-red-400 group-hover:visible"
             title="Delete"
           >
             ×
@@ -388,7 +418,7 @@ export function BudgetHomeClient({
       <button
         type="button"
         onClick={() => addItem(section)}
-        className="mt-1 text-xs text-gray-300 transition-colors hover:text-gray-500"
+        className="mt-1 text-xs text-gray-300 transition-colors hover:text-gray-500 dark:text-gray-600 dark:hover:text-gray-400"
       >
         + {label}
       </button>
@@ -397,10 +427,10 @@ export function BudgetHomeClient({
 
   function summaryRow(label: string, value: number, red = false) {
     return (
-      <div className="mt-1 flex items-center justify-between border-t border-gray-200 pt-1.5 text-sm font-semibold">
+      <div className="mt-1 flex items-center justify-between border-t border-gray-200 dark:border-gray-700 pt-1.5 text-sm font-semibold">
         <span>{label}</span>
         <span
-          className={`pr-5 tabular-nums ${red && value < 0 ? "text-red-600" : ""}`}
+          className={`pr-5 tabular-nums ${red && value < 0 ? "text-red-600 dark:text-red-400" : ""}`}
         >
           {formatCurrency(value)}
         </span>
@@ -409,27 +439,29 @@ export function BudgetHomeClient({
   }
 
   return (
-    <div className="min-h-screen bg-white px-6 py-8 text-gray-900">
+    <>
+      <div className="min-h-screen bg-white px-6 py-8 text-gray-900 dark:bg-gray-950 dark:text-gray-100">
       <div className="mx-auto max-w-5xl">
-        <header className="mb-6">
+        <header className="mb-6 flex items-center justify-between">
           <h1 className="text-2xl font-bold tracking-tight">Budget</h1>
+          <ThemeToggle dark={dark} onToggle={toggleDark} />
         </header>
 
         {/* Months strip */}
-        <div className="mb-8 flex flex-wrap items-center gap-2 border-b border-gray-100 pb-6">
+        <div className="mb-8 flex flex-wrap items-center gap-2 border-b border-gray-100 pb-6 dark:border-gray-800">
           <span className={`${sectionHeading} mb-0 mr-2`}>Months</span>
           {months.map((m) => (
             <span key={m.id} className="group relative inline-flex">
               <Link
                 href={`/budget/${monthToSlug(m.month)}/`}
-                className="rounded-full bg-gray-100 px-3.5 py-1 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-200"
+                className="rounded-full bg-gray-100 px-3.5 py-1 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
               >
                 {formatMonthLabel(m.month)}
               </Link>
               <button
                 type="button"
                 onClick={() => removeMonth(m.id, m.month)}
-                className="invisible absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-gray-300 text-[10px] leading-none text-white hover:bg-red-500 group-hover:visible"
+                className="invisible absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-gray-300 text-[10px] leading-none text-white hover:bg-red-500 group-hover:visible dark:bg-gray-600"
                 title="Delete month"
               >
                 ×
@@ -437,7 +469,7 @@ export function BudgetHomeClient({
             </span>
           ))}
           {months.length === 0 && (
-            <span className="text-sm text-gray-400">No months saved yet</span>
+            <span className="text-sm text-gray-400 dark:text-gray-500">No months saved yet</span>
           )}
           <span className="ml-auto flex items-center gap-2">
             <MonthPicker
@@ -449,7 +481,7 @@ export function BudgetHomeClient({
               type="button"
               onClick={saveToMonth}
               disabled={savingMonth || !monthInput}
-              className="rounded-md bg-gray-900 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-gray-700 disabled:opacity-40"
+              className="rounded-md bg-gray-900 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-gray-700 disabled:opacity-40 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-gray-300"
             >
               {savingMonth ? "Saving…" : "Save budget to month"}
             </button>
@@ -461,7 +493,7 @@ export function BudgetHomeClient({
           <div className="flex flex-col gap-10">
             <section>
               <h2 className={sectionHeading}>Income</h2>
-              <div className="divide-y divide-gray-100">
+              <div className="divide-y divide-gray-100 dark:divide-gray-800">
                 {incomeItems.map((item) => itemRow(item, false))}
               </div>
               {summaryRow("Net", netIncome)}
@@ -470,7 +502,7 @@ export function BudgetHomeClient({
 
             <section>
               <h2 className={sectionHeading}>Savings / Investment</h2>
-              <div className="divide-y divide-gray-100">
+              <div className="divide-y divide-gray-100 dark:divide-gray-800">
                 {savingsItems.map((item) => itemRow(item, false))}
               </div>
               {addRowButton("savings")}
@@ -478,7 +510,7 @@ export function BudgetHomeClient({
 
             <section>
               <h2 className={sectionHeading}>Rates</h2>
-              <div className="divide-y divide-gray-100 text-sm">
+              <div className="divide-y divide-gray-100 dark:divide-gray-800 text-sm">
                 {[
                   { label: "Spending", amount: expenseTotal },
                   { label: "Saving", amount: savingAmount },
@@ -492,7 +524,7 @@ export function BudgetHomeClient({
                     <span>{row.label}</span>
                     <span className="flex items-center gap-4 tabular-nums">
                       <span>{formatCurrency(row.amount)}</span>
-                      <span className="w-14 text-right text-gray-400">
+                      <span className="w-14 text-right text-gray-400 dark:text-gray-500">
                         {ratesBase > 0
                           ? formatPercent(row.amount / ratesBase)
                           : "—"}
@@ -507,7 +539,7 @@ export function BudgetHomeClient({
           {/* Column 2: Expenses */}
           <section>
             <h2 className={sectionHeading}>Expenses</h2>
-            <div className="divide-y divide-gray-100">
+            <div className="divide-y divide-gray-100 dark:divide-gray-800">
               {expenseItems.map((item) => itemRow(item, true))}
             </div>
             {summaryRow("Total", expenseTotal)}
@@ -518,7 +550,7 @@ export function BudgetHomeClient({
           <div className="flex flex-col gap-10">
             <section>
               <h2 className={sectionHeading}>Accounts</h2>
-              <div className="divide-y divide-gray-100">
+              <div className="divide-y divide-gray-100 dark:divide-gray-800">
                 {regularAccounts.map((account) => (
                   <div
                     key={account.id}
@@ -538,7 +570,7 @@ export function BudgetHomeClient({
                       <button
                         type="button"
                         onClick={() => removeAccount(account.id)}
-                        className="invisible w-4 text-gray-300 hover:text-red-500 group-hover:visible"
+                        className="invisible w-4 text-gray-300 hover:text-red-500 dark:text-gray-600 dark:hover:text-red-400 group-hover:visible"
                         title="Delete"
                       >
                         ×
@@ -552,7 +584,7 @@ export function BudgetHomeClient({
             {loanAccounts.length > 0 && (
               <section>
                 <h2 className={sectionHeading}>Loans</h2>
-                <div className="divide-y divide-gray-100">
+                <div className="divide-y divide-gray-100 dark:divide-gray-800">
                   {loanAccounts.map((account) => (
                     <div key={account.id} className="group py-1.5">
                       <div className="flex items-center justify-between gap-2">
@@ -569,20 +601,20 @@ export function BudgetHomeClient({
                               patchAccount(account.id, { balance })
                             }
                             className={
-                              account.balance < 0 ? "text-red-600" : ""
+                              account.balance < 0 ? "text-red-600 dark:text-red-400" : ""
                             }
                           />
                           <button
                             type="button"
                             onClick={() => removeAccount(account.id)}
-                            className="invisible w-4 text-gray-300 hover:text-red-500 group-hover:visible"
+                            className="invisible w-4 text-gray-300 hover:text-red-500 dark:text-gray-600 dark:hover:text-red-400 group-hover:visible"
                             title="Delete"
                           >
                             ×
                           </button>
                         </div>
                       </div>
-                      <div className="flex items-center gap-3 pl-1 text-xs text-gray-400">
+                      <div className="flex items-center gap-3 pl-1 text-xs text-gray-400 dark:text-gray-500">
                         <span className="flex items-center gap-1">
                           Due
                           <DatePicker
@@ -593,7 +625,7 @@ export function BudgetHomeClient({
                             clearable
                             align="right"
                             placeholder="—"
-                            buttonClassName="rounded px-1 py-0.5 text-xs tabular-nums text-gray-500 hover:bg-black/5"
+                            buttonClassName="rounded px-1 py-0.5 text-xs tabular-nums text-gray-500 hover:bg-black/5 dark:text-gray-400 dark:hover:bg-white/10"
                           />
                         </span>
                         <span className="flex items-center gap-1">
@@ -624,7 +656,7 @@ export function BudgetHomeClient({
                       onChange={(e) =>
                         setNewAccount({ ...newAccount, name: e.target.value })
                       }
-                      className="w-32 rounded-md border border-gray-200 px-2 py-1"
+                      className="w-32 rounded-md border border-gray-200 dark:border-gray-700 px-2 py-1"
                       autoFocus
                     />
                     <input
@@ -638,9 +670,9 @@ export function BudgetHomeClient({
                           balance: e.target.value,
                         })
                       }
-                      className="w-24 rounded-md border border-gray-200 px-2 py-1 text-right"
+                      className="w-24 rounded-md border border-gray-200 dark:border-gray-700 px-2 py-1 text-right"
                     />
-                    <label className="flex items-center gap-1 text-xs text-gray-500">
+                    <label className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
                       <input
                         type="checkbox"
                         checked={newAccount.is_loan}
@@ -667,7 +699,7 @@ export function BudgetHomeClient({
                             interest_rate: e.target.value,
                           })
                         }
-                        className="w-20 rounded-md border border-gray-200 px-2 py-1 text-right"
+                        className="w-20 rounded-md border border-gray-200 dark:border-gray-700 px-2 py-1 text-right"
                       />
                       <DatePicker
                         value={newAccount.payoff_date || null}
@@ -680,7 +712,7 @@ export function BudgetHomeClient({
                         clearable
                         align="right"
                         placeholder="Payoff date"
-                        buttonClassName="rounded-md border border-gray-200 px-2 py-1 text-sm text-gray-700 hover:bg-gray-50"
+                        buttonClassName="rounded-md border border-gray-200 dark:border-gray-700 px-2 py-1 text-sm text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800"
                       />
                     </div>
                   )}
@@ -688,14 +720,14 @@ export function BudgetHomeClient({
                     <button
                       type="button"
                       onClick={submitNewAccount}
-                      className="rounded-md bg-gray-900 px-3 py-1 text-xs font-medium text-white hover:bg-gray-700"
+                      className="rounded-md bg-gray-900 px-3 py-1 text-xs font-medium text-white hover:bg-gray-700 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-gray-300"
                     >
                       Add
                     </button>
                     <button
                       type="button"
                       onClick={() => setAddingAccount(false)}
-                      className="rounded-md px-3 py-1 text-xs text-gray-500 hover:bg-gray-100"
+                      className="rounded-md px-3 py-1 text-xs text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800"
                     >
                       Cancel
                     </button>
@@ -705,7 +737,7 @@ export function BudgetHomeClient({
                 <button
                   type="button"
                   onClick={() => setAddingAccount(true)}
-                  className="mt-1 text-xs text-gray-300 transition-colors hover:text-gray-500"
+                  className="mt-1 text-xs text-gray-300 transition-colors hover:text-gray-500 dark:text-gray-600 dark:hover:text-gray-400"
                 >
                   + Add account
                 </button>
@@ -714,6 +746,9 @@ export function BudgetHomeClient({
           </div>
         </div>
       </div>
-    </div>
+      </div>
+      <ConfirmDialog confirm={confirm} onClose={() => setConfirm(null)} />
+      <Toasts toasts={toasts} />
+    </>
   );
 }

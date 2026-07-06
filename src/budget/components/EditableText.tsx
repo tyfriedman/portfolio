@@ -43,7 +43,7 @@ export function EditableText({
           if (e.key === "Escape") setEditing(false);
         }}
         onFocus={(e) => e.target.select()}
-        className={`w-full rounded border border-blue-400 bg-white px-1 py-0.5 text-sm outline-none ${className}`}
+        className={`w-full rounded border border-blue-400 bg-white px-1 py-0.5 text-sm outline-none dark:border-blue-500 dark:bg-gray-900 ${className}`}
       />
     );
   }
@@ -52,7 +52,7 @@ export function EditableText({
     <button
       type="button"
       onClick={startEditing}
-      className={`cursor-text rounded px-1 py-0.5 text-left text-sm hover:bg-black/5 ${className}`}
+      className={`cursor-text rounded px-1 py-0.5 text-left text-sm hover:bg-black/5 dark:hover:bg-white/10 ${className}`}
       title="Click to edit"
     >
       {value}

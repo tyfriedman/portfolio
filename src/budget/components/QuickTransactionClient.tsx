@@ -5,6 +5,8 @@ import Link from "next/link";
 import type { BudgetMonth, MonthBudgetItem } from "@/budget/lib/db/months";
 import type { BudgetTransaction } from "@/budget/lib/db/transactions";
 import { DatePicker } from "@/budget/components/DatePicker";
+import { ThemeToggle, useDarkMode } from "@/budget/components/ThemeToggle";
+import { Toasts, useToasts } from "@/budget/components/Dialog";
 import { formatCurrency, formatMonthLabel } from "@/budget/lib/format";
 
 interface QuickTransactionClientProps {
@@ -51,6 +53,8 @@ export function QuickTransactionClient({
   const [categoryId, setCategoryId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [added, setAdded] = useState<BudgetTransaction[]>([]);
+  const { dark, toggle: toggleDark } = useDarkMode();
+  const { toasts, showToast } = useToasts();
 
   const expenseItems = items.filter((i) => i.section === "expense");
   const incomeItems = items.filter((i) => i.section === "income");
@@ -69,7 +73,7 @@ export function QuickTransactionClient({
     } catch (err) {
       console.error("Failed to load categories", err);
       setItems([]);
-      alert("Failed to load categories for that month.");
+      showToast("Couldn't load categories for that month.");
     } finally {
       setLoadingItems(false);
     }
@@ -79,7 +83,7 @@ export function QuickTransactionClient({
     if (!monthId) return;
     const parsed = Number(amount.replace(/[$,\s]/g, ""));
     if (!name.trim() || !Number.isFinite(parsed) || !date) {
-      alert("Enter a name and a valid amount.");
+      showToast("Enter a name and a valid amount.");
       return;
     }
     setSubmitting(true);
@@ -102,7 +106,7 @@ export function QuickTransactionClient({
       setAmount("");
     } catch (err) {
       console.error("Failed to add transaction", err);
-      alert("Failed to add transaction.");
+      showToast("Couldn't add the transaction.");
     } finally {
       setSubmitting(false);
     }
@@ -117,8 +121,8 @@ export function QuickTransactionClient({
         onClick={() => setCategoryId(selected ? null : item.id)}
         className={`flex items-center gap-2 rounded-full px-3.5 py-2 text-sm font-medium transition-colors ${
           selected
-            ? "bg-gray-900 text-white"
-            : "bg-gray-100 text-gray-700 active:bg-gray-200"
+            ? "bg-gray-900 text-white dark:bg-gray-100 dark:text-gray-900"
+            : "bg-gray-100 text-gray-700 active:bg-gray-200 dark:bg-gray-800 dark:text-gray-200 dark:active:bg-gray-700"
         }`}
       >
         <span
@@ -132,15 +136,15 @@ export function QuickTransactionClient({
 
   if (months.length === 0) {
     return (
-      <div className="mx-auto flex min-h-screen max-w-md flex-col items-center justify-center gap-3 px-6 text-center">
+      <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-white px-6 text-center text-gray-900 dark:bg-gray-950 dark:text-gray-100">
         <h1 className="text-xl font-bold">No months saved yet</h1>
-        <p className="text-sm text-gray-500">
+        <p className="max-w-md text-sm text-gray-500 dark:text-gray-400">
           Save your budget to a month from the budget home page first, then you
           can add transactions here.
         </p>
         <Link
           href="/budget/"
-          className="mt-2 rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white"
+          className="mt-2 rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white dark:bg-gray-100 dark:text-gray-900"
         >
           Go to budget
         </Link>
@@ -149,15 +153,20 @@ export function QuickTransactionClient({
   }
 
   return (
-    <div className="mx-auto min-h-screen max-w-md px-5 py-8">
-      <header className="mb-6 flex items-baseline justify-between">
+    <>
+      <div className="min-h-screen bg-white text-gray-900 dark:bg-gray-950 dark:text-gray-100">
+      <div className="mx-auto max-w-md px-5 py-8">
+      <header className="mb-6 flex items-center justify-between">
         <h1 className="text-xl font-bold tracking-tight">Add transaction</h1>
-        <Link
-          href="/budget/"
-          className="text-sm text-gray-400 transition-colors hover:text-gray-700"
-        >
-          Budget →
-        </Link>
+        <span className="flex items-center gap-1">
+          <Link
+            href="/budget/"
+            className="text-sm text-gray-400 transition-colors hover:text-gray-700 dark:text-gray-500 dark:hover:text-gray-200"
+          >
+            Budget →
+          </Link>
+          <ThemeToggle dark={dark} onToggle={toggleDark} />
+        </span>
       </header>
 
       {/* Month + date */}
@@ -166,7 +175,7 @@ export function QuickTransactionClient({
           <select
             value={monthId ?? ""}
             onChange={(e) => switchMonth(e.target.value)}
-            className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium"
+            className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium dark:border-gray-700 dark:bg-gray-900"
           >
             {months.map((m) => (
               <option key={m.id} value={m.id}>
@@ -188,7 +197,7 @@ export function QuickTransactionClient({
             min={bounds.min}
             max={bounds.max}
             align="right"
-            buttonClassName="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm tabular-nums text-gray-700"
+            buttonClassName="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm tabular-nums text-gray-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
           />
         )}
       </div>
@@ -200,7 +209,7 @@ export function QuickTransactionClient({
           placeholder="What was it?"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          className="w-full rounded-lg border border-gray-200 px-4 py-3 text-base outline-none focus:border-gray-400"
+          className="w-full rounded-lg border border-gray-200 px-4 py-3 text-base outline-none focus:border-gray-400 dark:border-gray-700 dark:bg-gray-900 dark:focus:border-gray-500"
         />
         <input
           type="text"
@@ -208,23 +217,23 @@ export function QuickTransactionClient({
           placeholder="$0.00"
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
-          className="w-full rounded-lg border border-gray-200 px-4 py-3 text-base tabular-nums outline-none focus:border-gray-400"
+          className="w-full rounded-lg border border-gray-200 px-4 py-3 text-base tabular-nums outline-none focus:border-gray-400 dark:border-gray-700 dark:bg-gray-900 dark:focus:border-gray-500"
         />
       </div>
 
       {/* Categories */}
       <div className="mb-6">
-        <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-400">
+        <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
           Category
         </p>
         {loadingItems ? (
-          <p className="text-sm text-gray-400">Loading…</p>
+          <p className="text-sm text-gray-400 dark:text-gray-500">Loading…</p>
         ) : (
           <div className="flex flex-wrap gap-2">
             {expenseItems.map(categoryChip)}
             {incomeItems.length > 0 && (
               <>
-                <span className="basis-full pt-1 text-[10px] font-semibold uppercase tracking-wider text-gray-300">
+                <span className="basis-full pt-1 text-[10px] font-semibold uppercase tracking-wider text-gray-300 dark:text-gray-600">
                   Income
                 </span>
                 {incomeItems.map(categoryChip)}
@@ -238,7 +247,7 @@ export function QuickTransactionClient({
         type="button"
         onClick={submit}
         disabled={submitting || !monthId}
-        className="w-full rounded-xl bg-gray-900 py-3.5 text-base font-semibold text-white transition-colors active:bg-gray-700 disabled:opacity-40"
+        className="w-full rounded-xl bg-gray-900 py-3.5 text-base font-semibold text-white transition-colors active:bg-gray-700 disabled:opacity-40 dark:bg-gray-100 dark:text-gray-900 dark:active:bg-gray-300"
       >
         {submitting ? "Adding…" : "Add transaction"}
       </button>
@@ -246,10 +255,10 @@ export function QuickTransactionClient({
       {/* Session log */}
       {added.length > 0 && (
         <div className="mt-8">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-400">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
             Added
           </p>
-          <div className="divide-y divide-gray-100">
+          <div className="divide-y divide-gray-100 dark:divide-gray-800">
             {added.map((tx) => {
               const category = items.find((i) => i.id === tx.category_id);
               return (
@@ -266,7 +275,7 @@ export function QuickTransactionClient({
                     />
                     {tx.name}
                   </span>
-                  <span className="tabular-nums text-gray-500">
+                  <span className="tabular-nums text-gray-500 dark:text-gray-400">
                     {formatCurrency(tx.amount)}
                   </span>
                 </div>
@@ -275,6 +284,9 @@ export function QuickTransactionClient({
           </div>
         </div>
       )}
-    </div>
+      </div>
+      </div>
+      <Toasts toasts={toasts} />
+    </>
   );
 }

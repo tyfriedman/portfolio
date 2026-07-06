@@ -48,9 +48,9 @@ function defaultFormat(iso: string): string {
 }
 
 const popoverClass =
-  "absolute z-50 mt-1.5 w-64 rounded-xl border border-gray-200 bg-white p-3 shadow-lg";
+  "absolute z-50 mt-1.5 w-64 rounded-xl border border-gray-200 bg-white p-3 shadow-lg dark:border-gray-700 dark:bg-gray-900";
 const navButtonClass =
-  "flex h-7 w-7 items-center justify-center rounded-md text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700";
+  "flex h-7 w-7 items-center justify-center rounded-md text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-800 dark:hover:text-gray-200";
 
 interface DatePickerProps {
   value: string | null; // ISO date (YYYY-MM-DD)
@@ -73,7 +73,7 @@ export function DatePicker({
   align = "left",
   placeholder = "Set date",
   formatDisplay = defaultFormat,
-  buttonClassName = "rounded px-1 py-0.5 text-sm tabular-nums hover:bg-black/5",
+  buttonClassName = "rounded px-1 py-0.5 text-sm tabular-nums hover:bg-black/5 dark:hover:bg-white/10",
 }: DatePickerProps) {
   const [open, setOpen] = useState(false);
   const [view, setView] = useState(() => initialView(value, min));
@@ -122,7 +122,9 @@ export function DatePicker({
         {value ? (
           formatDisplay(value)
         ) : (
-          <span className="text-gray-400">{placeholder}</span>
+          <span className="text-gray-400 dark:text-gray-500">
+            {placeholder}
+          </span>
         )}
       </button>
 
@@ -159,7 +161,7 @@ export function DatePicker({
               {DAY_LABELS.map((d) => (
                 <span
                   key={d}
-                  className="py-0.5 text-[10px] font-medium uppercase text-gray-400"
+                  className="py-0.5 text-[10px] font-medium uppercase text-gray-400 dark:text-gray-500"
                 >
                   {d}
                 </span>
@@ -185,12 +187,12 @@ export function DatePicker({
                     }}
                     className={`mx-auto flex h-7 w-7 items-center justify-center rounded-full text-xs transition-colors ${
                       selected
-                        ? "bg-gray-900 font-semibold text-white"
+                        ? "bg-gray-900 font-semibold text-white dark:bg-gray-100 dark:text-gray-900"
                         : disabled
-                          ? "text-gray-300"
+                          ? "text-gray-300 dark:text-gray-600"
                           : isToday
-                            ? "font-semibold text-blue-600 hover:bg-gray-100"
-                            : "text-gray-700 hover:bg-gray-100"
+                            ? "font-semibold text-blue-600 hover:bg-gray-100 dark:text-blue-400 dark:hover:bg-gray-800"
+                            : "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
                     }`}
                   >
                     {day}
@@ -207,7 +209,7 @@ export function DatePicker({
                     onChange(null);
                     setOpen(false);
                   }}
-                  className="text-xs text-gray-400 transition-colors hover:text-red-500"
+                  className="text-xs text-gray-400 transition-colors hover:text-red-500 dark:text-gray-500 dark:hover:text-red-400"
                 >
                   Clear date
                 </button>
@@ -231,7 +233,7 @@ export function MonthPicker({
   value,
   onChange,
   align = "left",
-  buttonClassName = "rounded-md border border-gray-200 px-3 py-1.5 text-sm text-gray-700 transition-colors hover:bg-gray-50",
+  buttonClassName = "rounded-md border border-gray-200 px-3 py-1.5 text-sm text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800",
 }: MonthPickerProps) {
   const [open, setOpen] = useState(false);
   const [year, setYear] = useState(() => Number(value.slice(0, 4)));
@@ -299,10 +301,10 @@ export function MonthPicker({
                     }}
                     className={`rounded-lg py-1.5 text-xs transition-colors ${
                       selected
-                        ? "bg-gray-900 font-semibold text-white"
+                        ? "bg-gray-900 font-semibold text-white dark:bg-gray-100 dark:text-gray-900"
                         : isCurrent
-                          ? "font-semibold text-blue-600 hover:bg-gray-100"
-                          : "text-gray-700 hover:bg-gray-100"
+                          ? "font-semibold text-blue-600 hover:bg-gray-100 dark:text-blue-400 dark:hover:bg-gray-800"
+                          : "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
                     }`}
                   >
                     {label}

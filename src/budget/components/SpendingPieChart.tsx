@@ -25,7 +25,7 @@ export function SpendingPieChart({ slices }: SpendingPieChartProps) {
 
   if (total <= 0) {
     return (
-      <p className="py-6 text-center text-sm text-gray-400">
+      <p className="py-6 text-center text-sm text-gray-400 dark:text-gray-500">
         No spending yet this month.
       </p>
     );
@@ -61,8 +61,8 @@ export function SpendingPieChart({ slices }: SpendingPieChartProps) {
           key={slice.name}
           d={d}
           fill={slice.color}
-          stroke="#fff"
           strokeWidth="1"
+          className="stroke-white dark:stroke-gray-950"
         />
       );
     });
@@ -89,7 +89,7 @@ export function SpendingPieChart({ slices }: SpendingPieChartProps) {
                 style={{ backgroundColor: slice.color }}
               />
               <span>{slice.name}</span>
-              <span className="text-gray-500">
+              <span className="text-gray-500 dark:text-gray-400">
                 {((slice.value / total) * 100).toFixed(1)}% ·{" "}
                 {formatCurrency(slice.value)}
               </span>

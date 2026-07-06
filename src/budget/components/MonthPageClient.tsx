@@ -13,6 +13,8 @@ import { EditableText } from "@/budget/components/EditableText";
 import { DatePicker } from "@/budget/components/DatePicker";
 import { CategorySelect } from "@/budget/components/CategorySelect";
 import { SpendingPieChart } from "@/budget/components/SpendingPieChart";
+import { ThemeToggle, useDarkMode } from "@/budget/components/ThemeToggle";
+import { Toasts, useToasts } from "@/budget/components/Dialog";
 import { formatCurrency, formatMonthLabel } from "@/budget/lib/format";
 
 interface MonthPageClientProps {
@@ -56,11 +58,12 @@ function actualStatusClass(
   budget: number,
   color: string | null
 ): string {
-  if (actual > budget) return "font-semibold text-red-600";
+  if (actual > budget) return "font-semibold text-red-600 dark:text-red-400";
   const isFixed = !color || color.toLowerCase() === FIXED_COLOR;
   if (isFixed) return "";
-  if (budget - actual <= YELLOW_THRESHOLD) return "font-medium text-amber-500";
-  return "font-medium text-green-600";
+  if (budget - actual <= YELLOW_THRESHOLD)
+    return "font-medium text-amber-500 dark:text-amber-400";
+  return "font-medium text-green-600 dark:text-green-400";
 }
 
 function defaultTransactionDate(month: string): string {
@@ -90,6 +93,8 @@ export function MonthPageClient({
     category_id: "",
   });
   const [addingTx, setAddingTx] = useState(false);
+  const { dark, toggle: toggleDark } = useDarkMode();
+  const { toasts, showToast } = useToasts();
 
   const expenseItems = useMemo(
     () => items.filter((i) => i.section === "expense"),
@@ -154,7 +159,7 @@ export function MonthPageClient({
     } catch (err) {
       console.error("Failed to update month item", err);
       setItems(prev);
-      alert("Failed to save change.");
+      showToast("Couldn't save that change.");
     }
   }
 
@@ -176,14 +181,14 @@ export function MonthPageClient({
     } catch (err) {
       console.error("Failed to update month account", err);
       setAccounts(prev);
-      alert("Failed to save change.");
+      showToast("Couldn't save that change.");
     }
   }
 
   async function addTransaction() {
     const amount = Number(newTx.amount.replace(/[$,\s]/g, ""));
     if (!newTx.name.trim() || !Number.isFinite(amount) || !newTx.date) {
-      alert("Enter a date, name, and valid amount.");
+      showToast("Enter a date, name, and valid amount.");
       return;
     }
     setAddingTx(true);
@@ -212,7 +217,7 @@ export function MonthPageClient({
       });
     } catch (err) {
       console.error("Failed to add transaction", err);
-      alert("Failed to add transaction.");
+      showToast("Couldn't add the transaction.");
     } finally {
       setAddingTx(false);
     }
@@ -240,7 +245,7 @@ export function MonthPageClient({
     } catch (err) {
       console.error("Failed to update transaction", err);
       setTransactions(prev);
-      alert("Failed to save change.");
+      showToast("Couldn't save that change.");
     }
   }
 
@@ -255,29 +260,34 @@ export function MonthPageClient({
     } catch (err) {
       console.error("Failed to delete transaction", err);
       setTransactions(prev);
-      alert("Failed to delete transaction.");
+      showToast("Couldn't delete the transaction.");
     }
   }
 
   // ----- render -----
 
   const sectionHeading =
-    "mb-1 text-xs font-semibold uppercase tracking-wider text-gray-400";
-  const colLabel = "text-right text-[11px] font-medium text-gray-400";
+    "mb-1 text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500";
+  const colLabel =
+    "text-right text-[11px] font-medium text-gray-400 dark:text-gray-500";
 
   return (
-    <div className="min-h-screen bg-white px-6 py-8 text-gray-900">
+    <>
+      <div className="min-h-screen bg-white px-6 py-8 text-gray-900 dark:bg-gray-950 dark:text-gray-100">
       <div className="mx-auto max-w-6xl">
-        <header className="mb-8 flex flex-wrap items-baseline justify-between gap-2 border-b border-gray-100 pb-5">
+        <header className="mb-8 flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 pb-5 dark:border-gray-800">
           <h1 className="text-2xl font-bold tracking-tight">
             {formatMonthLabel(month.month)}
           </h1>
-          <Link
-            href="/budget/"
-            className="text-sm text-gray-400 transition-colors hover:text-gray-700"
-          >
-            ← Budget
-          </Link>
+          <span className="flex items-center gap-2">
+            <Link
+              href="/budget/"
+              className="text-sm text-gray-400 transition-colors hover:text-gray-700 dark:text-gray-500 dark:hover:text-gray-200"
+            >
+              ← Budget
+            </Link>
+            <ThemeToggle dark={dark} onToggle={toggleDark} />
+          </span>
         </header>
 
         <div className="grid grid-cols-1 gap-x-12 gap-y-10 lg:grid-cols-[1.15fr_1fr_1fr]">
@@ -286,7 +296,7 @@ export function MonthPageClient({
             <h2 className={sectionHeading}>Transactions</h2>
 
             {/* Add form */}
-            <div className="mb-3 flex flex-wrap items-center gap-1.5 rounded-lg bg-gray-50 p-2">
+            <div className="mb-3 flex flex-wrap items-center gap-1.5 rounded-lg bg-gray-50 p-2 dark:bg-gray-900">
               <DatePicker
                 value={newTx.date}
                 onChange={(date) => {
@@ -294,7 +304,7 @@ export function MonthPageClient({
                 }}
                 min={bounds.min}
                 max={bounds.max}
-                buttonClassName="rounded-md border border-gray-200 bg-white px-2 py-1 text-xs tabular-nums text-gray-700 hover:bg-gray-50"
+                buttonClassName="rounded-md border border-gray-200 dark:border-gray-700 bg-white px-2 py-1 text-xs tabular-nums text-gray-700 hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
               />
               <input
                 type="text"
@@ -304,7 +314,7 @@ export function MonthPageClient({
                 onKeyDown={(e) => {
                   if (e.key === "Enter") addTransaction();
                 }}
-                className="w-24 flex-1 rounded-md border border-gray-200 bg-white px-1.5 py-1 text-xs"
+                className="w-24 flex-1 rounded-md border border-gray-200 dark:border-gray-700 bg-white px-1.5 py-1 text-xs dark:bg-gray-800"
               />
               <input
                 type="text"
@@ -317,7 +327,7 @@ export function MonthPageClient({
                 onKeyDown={(e) => {
                   if (e.key === "Enter") addTransaction();
                 }}
-                className="w-16 rounded-md border border-gray-200 bg-white px-1.5 py-1 text-right text-xs"
+                className="w-16 rounded-md border border-gray-200 dark:border-gray-700 bg-white px-1.5 py-1 text-right text-xs dark:bg-gray-800"
               />
               <CategorySelect
                 value={newTx.category_id || null}
@@ -333,7 +343,7 @@ export function MonthPageClient({
                 type="button"
                 onClick={addTransaction}
                 disabled={addingTx}
-                className="rounded-md bg-gray-900 px-2.5 py-1 text-xs font-medium text-white transition-colors hover:bg-gray-700 disabled:opacity-40"
+                className="rounded-md bg-gray-900 px-2.5 py-1 text-xs font-medium text-white transition-colors hover:bg-gray-700 disabled:opacity-40 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-gray-300"
               >
                 Add
               </button>
@@ -341,11 +351,11 @@ export function MonthPageClient({
 
             {/* List */}
             {transactions.length === 0 ? (
-              <p className="py-3 text-sm text-gray-400">
+              <p className="py-3 text-sm text-gray-400 dark:text-gray-500">
                 No transactions yet.
               </p>
             ) : (
-              <div className="divide-y divide-gray-100">
+              <div className="divide-y divide-gray-100 dark:divide-gray-800">
                 {transactions.map((tx) => (
                   <div
                     key={tx.id}
@@ -360,7 +370,7 @@ export function MonthPageClient({
                         min={bounds.min}
                         max={bounds.max}
                         formatDisplay={formatDayInMonth}
-                        buttonClassName="rounded px-1 py-0.5 text-xs tabular-nums text-gray-500 hover:bg-black/5"
+                        buttonClassName="rounded px-1 py-0.5 text-xs tabular-nums text-gray-500 hover:bg-black/5 dark:text-gray-400 dark:hover:bg-white/10"
                       />
                     </span>
                     <span className="min-w-0 flex-1">
@@ -388,7 +398,7 @@ export function MonthPageClient({
                     <button
                       type="button"
                       onClick={() => removeTransaction(tx.id)}
-                      className="w-4 text-gray-300 transition-colors hover:text-red-500"
+                      className="w-4 text-gray-300 transition-colors hover:text-red-500 dark:text-gray-600 dark:hover:text-red-400"
                       title="Delete transaction"
                     >
                       ×
@@ -409,7 +419,7 @@ export function MonthPageClient({
                   <span className={`${colLabel} w-20`}>Actual</span>
                 </div>
               </div>
-              <div className="divide-y divide-gray-100">
+              <div className="divide-y divide-gray-100 dark:divide-gray-800">
                 {expenseItems.map((item) => {
                   const actual = actualsByCategory.get(item.id) ?? 0;
                   return (
@@ -449,7 +459,7 @@ export function MonthPageClient({
                   );
                 })}
               </div>
-              <div className="mt-1 flex items-center justify-between border-t border-gray-200 pt-1.5 text-sm font-semibold">
+              <div className="mt-1 flex items-center justify-between border-t border-gray-200 dark:border-gray-700 pt-1.5 text-sm font-semibold">
                 <span>Total</span>
                 <span className="flex gap-4 tabular-nums">
                   <span className="w-20 text-right">
@@ -484,7 +494,7 @@ export function MonthPageClient({
                   <span className={`${colLabel} w-20`}>Actual</span>
                 </div>
               </div>
-              <div className="divide-y divide-gray-100">
+              <div className="divide-y divide-gray-100 dark:divide-gray-800">
                 {incomeItems.map((item) => (
                   <div
                     key={item.id}
@@ -518,19 +528,19 @@ export function MonthPageClient({
                   </span>
                 </div>
               </div>
-              <div className="mt-1 flex items-center justify-between border-t border-gray-200 pt-1.5 text-sm font-semibold">
+              <div className="mt-1 flex items-center justify-between border-t border-gray-200 dark:border-gray-700 pt-1.5 text-sm font-semibold">
                 <span>Net</span>
                 <span className="flex gap-4 tabular-nums">
                   <span
                     className={`w-20 text-right ${
-                      netBudget < 0 ? "text-red-600" : ""
+                      netBudget < 0 ? "text-red-600 dark:text-red-400" : ""
                     }`}
                   >
                     {formatCurrency(netBudget)}
                   </span>
                   <span
                     className={`w-20 text-right ${
-                      netActual < 0 ? "text-red-600" : ""
+                      netActual < 0 ? "text-red-600 dark:text-red-400" : ""
                     }`}
                   >
                     {formatCurrency(netActual)}
@@ -547,7 +557,7 @@ export function MonthPageClient({
                   <span className={`${colLabel} w-20`}>End</span>
                 </div>
               </div>
-              <div className="divide-y divide-gray-100">
+              <div className="divide-y divide-gray-100 dark:divide-gray-800">
                 {accounts.map((account) => (
                   <div
                     key={account.id}
@@ -563,7 +573,7 @@ export function MonthPageClient({
                           }
                           className={
                             (account.start_balance ?? 0) < 0
-                              ? "text-red-600"
+                              ? "text-red-600 dark:text-red-400"
                               : ""
                           }
                         />
@@ -576,7 +586,7 @@ export function MonthPageClient({
                           }
                           className={
                             (account.end_balance ?? 0) < 0
-                              ? "text-red-600"
+                              ? "text-red-600 dark:text-red-400"
                               : ""
                           }
                         />
@@ -585,12 +595,12 @@ export function MonthPageClient({
                   </div>
                 ))}
               </div>
-              <div className="mt-1 flex items-center justify-between border-t border-gray-200 pt-1.5 text-sm font-semibold">
+              <div className="mt-1 flex items-center justify-between border-t border-gray-200 dark:border-gray-700 pt-1.5 text-sm font-semibold">
                 <span>Net Worth</span>
                 <span className="flex gap-4 tabular-nums">
                   <span
                     className={`w-20 text-right ${
-                      (netWorthStart ?? 0) < 0 ? "text-red-600" : ""
+                      (netWorthStart ?? 0) < 0 ? "text-red-600 dark:text-red-400" : ""
                     }`}
                   >
                     {netWorthStart === null
@@ -599,7 +609,7 @@ export function MonthPageClient({
                   </span>
                   <span
                     className={`w-20 text-right ${
-                      (netWorthEnd ?? 0) < 0 ? "text-red-600" : ""
+                      (netWorthEnd ?? 0) < 0 ? "text-red-600 dark:text-red-400" : ""
                     }`}
                   >
                     {netWorthEnd === null ? "—" : formatCurrency(netWorthEnd)}
@@ -610,6 +620,8 @@ export function MonthPageClient({
           </div>
         </div>
       </div>
-    </div>
+      </div>
+      <Toasts toasts={toasts} />
+    </>
   );
 }

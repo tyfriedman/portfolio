@@ -6,9 +6,9 @@ import type { MonthBudgetItem } from "@/budget/lib/db/months";
 const FALLBACK_COLOR = "#d1d5db";
 
 const popoverClass =
-  "absolute z-50 mt-1.5 w-48 rounded-xl border border-gray-200 bg-white p-1.5 shadow-lg";
+  "absolute z-50 mt-1.5 w-48 rounded-xl border border-gray-200 bg-white p-1.5 shadow-lg dark:border-gray-700 dark:bg-gray-900";
 const groupLabelClass =
-  "block px-2 pb-0.5 pt-2 text-[10px] font-medium uppercase tracking-wider text-gray-400";
+  "block px-2 pb-0.5 pt-2 text-[10px] font-medium uppercase tracking-wider text-gray-400 dark:text-gray-500";
 
 interface CategorySelectProps {
   value: string | null;
@@ -46,8 +46,8 @@ export function CategorySelect({
         key={item.id}
         type="button"
         onClick={() => select(item.id)}
-        className={`flex w-full items-center gap-2 rounded-md px-2 py-1 text-left text-xs transition-colors hover:bg-gray-100 ${
-          isSelected ? "font-semibold" : "text-gray-700"
+        className={`flex w-full items-center gap-2 rounded-md px-2 py-1 text-left text-xs transition-colors hover:bg-gray-100 dark:hover:bg-gray-800 ${
+          isSelected ? "font-semibold" : "text-gray-700 dark:text-gray-300"
         }`}
       >
         <span
@@ -64,12 +64,14 @@ export function CategorySelect({
       <button
         type="button"
         onClick={() => setOpen((cur) => !cur)}
-        className={`flex items-center gap-1.5 ${buttonClassName}`}
-        style={{
-          backgroundColor: selected
-            ? `${selected.color ?? FALLBACK_COLOR}44`
-            : "#f3f4f6",
-        }}
+        className={`flex items-center gap-1.5 ${
+          selected ? "" : "bg-gray-100 dark:bg-gray-800"
+        } ${buttonClassName}`}
+        style={
+          selected
+            ? { backgroundColor: `${selected.color ?? FALLBACK_COLOR}44` }
+            : undefined
+        }
       >
         {selected ? (
           <>
@@ -80,7 +82,9 @@ export function CategorySelect({
             <span className="truncate">{selected.name}</span>
           </>
         ) : (
-          <span className="truncate text-gray-500">Uncategorized</span>
+          <span className="truncate text-gray-500 dark:text-gray-400">
+            Uncategorized
+          </span>
         )}
       </button>
 
@@ -97,11 +101,13 @@ export function CategorySelect({
               <button
                 type="button"
                 onClick={() => select(null)}
-                className={`flex w-full items-center gap-2 rounded-md px-2 py-1 text-left text-xs transition-colors hover:bg-gray-100 ${
-                  value === null ? "font-semibold" : "text-gray-500"
+                className={`flex w-full items-center gap-2 rounded-md px-2 py-1 text-left text-xs transition-colors hover:bg-gray-100 dark:hover:bg-gray-800 ${
+                  value === null
+                    ? "font-semibold"
+                    : "text-gray-500 dark:text-gray-400"
                 }`}
               >
-                <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-gray-200" />
+                <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-gray-200 dark:bg-gray-600" />
                 <span className="truncate">Uncategorized</span>
               </button>
 
