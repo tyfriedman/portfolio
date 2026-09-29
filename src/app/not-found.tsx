@@ -17,10 +17,10 @@ export default function NotFound() {
       </h1>
       <p className="mt-4 text-neutral-600 leading-relaxed">
         Which, to be fair, you were warned about. Either this project moved,
-        never existed, or you spelled it in a way I did not anticipate.
+        never existed, or you need to check your spelling.
       </p>
       <p className="mt-3 text-neutral-600 leading-relaxed">
-        Feel free to keep guessing. The odds are not great, but they are not
+        Feel free to keep guessing. The odds are not great, but they are never
         zero.
       </p>
       <div className="mt-10 flex flex-wrap gap-x-8 gap-y-3 text-sm">
