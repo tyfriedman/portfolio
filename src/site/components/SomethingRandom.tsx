@@ -9,7 +9,7 @@ export default function SomethingRandom() {
         prompt={
           <h1 className="text-2xl sm:text-3xl font-medium tracking-tight text-neutral-900 leading-snug">
             Congrats! You found something (random)! Here&rsquo;s a cookie as a
-            reward <span aria-hidden="true">--&gt;</span>
+            reward <span aria-hidden="true">&rarr;</span>
           </h1>
         }
       />
