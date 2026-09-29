@@ -6,9 +6,6 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Add Transaction",
   description: "Quickly add a budget transaction",
-  icons: {
-    icon: "/icon.png",
-  },
 };
 
 export default function TransactionLayout({

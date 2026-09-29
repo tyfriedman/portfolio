@@ -6,9 +6,6 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Budget",
   description: "Personal budget tracker",
-  icons: {
-    icon: "/icon.png",
-  },
 };
 
 export default function BudgetLayout({

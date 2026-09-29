@@ -4,9 +4,6 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Todo Calendar",
   description: "Calendar-style todo list",
-  icons: {
-    icon: "/icon.png",
-  },
 };
 
 export default function TodoLayout({
