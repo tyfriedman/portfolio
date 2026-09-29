@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 
 const navItems = [
   { id: 'academic', label: 'Academic' },
@@ -44,12 +45,12 @@ const Navigation = () => {
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-[#fafafa]/90 backdrop-blur-sm">
       <div className="max-w-2xl mx-auto px-6 py-5 flex justify-between items-center">
-        <button
-          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+        <Link
+          href="/"
           className="text-sm text-neutral-900 hover:text-neutral-600 transition-colors"
         >
           Ty Friedman
-        </button>
+        </Link>
 
         <div className="hidden sm:flex gap-6">
           {navItems.map((item) => (
